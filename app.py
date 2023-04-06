@@ -14,7 +14,8 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
-chatgpt_channel=conf['chatgpt_channel']
+chatgpt_channel = conf['chatgpt_channel']
+
 
 @client.event
 async def on_message(message: discord.Message):
@@ -25,7 +26,10 @@ async def on_message(message: discord.Message):
             pass
             #await message.channel.send('Transmutation official bot\nReport issues to Admin')
         if message.channel.id in chatgpt_channel:
-            await message.channel.send(chatgpt.gpt35(message.content))
+            if not message.content.startswith('##'):
+                if len(message.content) > 0:
+                    reply = chatgpt.gpt35(message.content)
+                    await message.reply(reply)
     finally:
         user = str(message.author)
         guild = message.guild.name
@@ -42,24 +46,37 @@ async def on_message(message: discord.Message):
 async def help(interaction: discord.Interaction):
     await interaction.response.send_message('Transmutation official bot\nReport issues to Admin')
 
+
 @tree.command(name='chance', description='算機率')
-async def chance(interaction: discord.Interaction, ask: str=None):
+async def chance(interaction: discord.Interaction, ask: str = None):
     """
     Args:
         ask (str, optional): 事項
     """
     await interaction.response.send_message(f'{ask if ask else "機率"}: {games.chance()}')
 
+
 @tree.command(name='fortune', description='你的運勢')
-async def fortune(interaction: discord.Interaction, ask: str=None):
+async def fortune(interaction: discord.Interaction, ask: str = None):
     """
     Args:
         ask (str, optional): 事項
     """
     await interaction.response.send_message(f'{ask if ask else "運勢"}: {games.fortune()}')
 
+
 @tree.command(name='pick', description='多選一')
-async def pick(interaction: discord.Interaction, a: str, b: str, c: str= None, d: str= None, e: str= None, f: str= None, g: str= None, h: str= None, i: str= None, j: str= None):
+async def pick(interaction: discord.Interaction,
+               a: str,
+               b: str,
+               c: str = None,
+               d: str = None,
+               e: str = None,
+               f: str = None,
+               g: str = None,
+               h: str = None,
+               i: str = None,
+               j: str = None):
     """
     Args:
         a (str): 事項1
@@ -73,7 +90,7 @@ async def pick(interaction: discord.Interaction, a: str, b: str, c: str= None, d
         i (str, optional): 事項9
         j (str, optional): 事項10
     """
-    S={a,b,c,d,e,f,g,h,i,j}
+    S = {a, b, c, d, e, f, g, h, i, j}
     S.discard(None)
     await interaction.response.send_message(f'選擇: {games.pick(list(S))}')
 
