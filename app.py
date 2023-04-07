@@ -1,6 +1,7 @@
 import discord
 from discord import app_commands
 from discord.ext import tasks
+from typing import Union
 import datetime
 import json
 import sqlite3
@@ -32,7 +33,8 @@ async def on_message(message: discord.Message):
                     await message.reply(reply)
     finally:
         user = str(message.author)
-        guild = message.guild.name
+        if message.guild:guild = message.guild.name
+        else: return
         channel = message.channel.name
         time = (message.created_at + datetime.timedelta(hours=8)).strftime('%Y%m%d-%H%M%S')
         content = message.content
@@ -93,6 +95,35 @@ async def pick(interaction: discord.Interaction,
     S = {a, b, c, d, e, f, g, h, i, j}
     S.discard(None)
     await interaction.response.send_message(f'選擇: {games.pick(list(S))}')
+
+
+@tree.command(name='cp', description='複製訊息到其他頻道')
+async def copy(interaction: discord.Interaction,
+               message_id: str,
+               channel: Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread],
+               original_link: bool = True):
+    """
+    Args:
+        message_id (str): 訊息ID
+        channel Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]: 頻道或討論串
+        original_link (bool, Optional): 顯示原始連結
+    """
+    try:
+        message = await interaction.channel.fetch_message(int(message_id))
+    except:
+        await interaction.response.send_message("找不到此訊息", ephemeral=True)
+        return
+    if message.guild == channel.guild:
+        try:
+            embed = discord.Embed(description=message.content)
+            embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url)
+            if original_link: embed.add_field(name='Copy from', value=message.jump_url, inline=False)
+            result = await channel.send(embed=embed)
+            await interaction.response.send_message(f"完成: {result.jump_url}", ephemeral=True)
+        except:
+            await interaction.response.send_message(f"無法傳送", ephemeral=True)
+    else:
+        await interaction.response.send_message("不在同一個伺服器", ephemeral=True)
 
 
 @tasks.loop(time=datetime.time(hour=13, minute=0, second=0))
