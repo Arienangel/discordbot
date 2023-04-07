@@ -7,9 +7,14 @@ import json
 import sqlite3
 import games, chatgpt
 
-with open('config/app.json', encoding='utf-8') as f:
-    conf = json.load(f)
 
+def load_config():
+    with open('config/app.json', encoding='utf-8') as f:
+        global conf
+        conf = json.load(f)
+
+
+load_config()
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
@@ -33,7 +38,7 @@ async def on_message(message: discord.Message):
                     await message.reply(reply)
     finally:
         user = str(message.author)
-        if message.guild:guild = message.guild.name
+        if message.guild: guild = message.guild.name
         else: return
         channel = message.channel.name
         time = (message.created_at + datetime.timedelta(hours=8)).strftime('%Y%m%d-%H%M%S')
@@ -46,7 +51,7 @@ async def on_message(message: discord.Message):
 
 @tree.command(name='help', description='Show help message')
 async def help(interaction: discord.Interaction):
-    await interaction.response.send_message('Transmutation official bot\nReport issues to Admin')
+    await interaction.response.send_message(conf['command']['help']['help_message'])
 
 
 @tree.command(name='chance', description='算機率')
@@ -101,12 +106,17 @@ async def pick(interaction: discord.Interaction,
 async def copy(interaction: discord.Interaction,
                message_id: str,
                channel: Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread],
-               original_link: bool = True):
+               notify: bool = True,
+               origin: bool = True,
+               copier: bool = False):
     """
     Args:
         message_id (str): 訊息ID
         channel Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]: 頻道或討論串
-        original_link (bool, Optional): 顯示原始連結
+        notify (bool, Optional): 顯示複製通知 (預設: True)
+        origin (bool, Optional): 顯示原始訊息 (預設: True)
+        copier (bool, Optional): 顯示複製者 (預設: False)
+
     """
     try:
         message = await interaction.channel.fetch_message(int(message_id))
@@ -117,13 +127,23 @@ async def copy(interaction: discord.Interaction,
         try:
             embed = discord.Embed(description=message.content)
             embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url)
-            if original_link: embed.add_field(name='Copy from', value=message.jump_url, inline=False)
+            if origin: embed.add_field(name='Copy from', value=message.jump_url, inline=False)
+            if copier: embed.add_field(name='Copy by', value=interaction.user.mention, inline=False)
             result = await channel.send(embed=embed)
-            await interaction.response.send_message(f"完成: {result.jump_url}", ephemeral=True)
+            await interaction.response.send_message(f"複製訊息到: {result.jump_url}", ephemeral=(not notify))
         except:
             await interaction.response.send_message(f"無法傳送", ephemeral=True)
     else:
         await interaction.response.send_message("不在同一個伺服器", ephemeral=True)
+
+
+@tree.command(name='reload', description='Reload bot config file')
+async def reload(interaction: discord.Interaction):
+    if interaction.user.id in conf['command']['reload']['permission']:
+        load_config()
+        await interaction.response.send_message("Finish", ephemeral=True)
+    else:
+        await interaction.response.send_message("Permission denied", ephemeral=True)
 
 
 @tasks.loop(time=datetime.time(hour=13, minute=0, second=0))
