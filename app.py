@@ -105,17 +105,19 @@ async def pick(interaction: discord.Interaction,
 @tree.command(name='cp', description='複製訊息到其他頻道')
 async def copy(interaction: discord.Interaction,
                message_id: str,
-               channel: Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread],
+               channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread],
                notify: bool = True,
                origin: bool = True,
-               copier: bool = False):
+               copier: bool = False,
+               title: str = None):
     """
     Args:
         message_id (str): 訊息ID
-        channel (Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]): 頻道或討論串
+        channel (Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]): 頻道或討論串
         notify (bool, Optional): 顯示複製通知 (預設: True)
         origin (bool, Optional): 顯示原始訊息 (預設: True)
         copier (bool, Optional): 顯示複製者 (預設: False)
+        title (str, Optional): 論壇頻道標題 (預設: None)
 
     """
     try:
@@ -129,8 +131,16 @@ async def copy(interaction: discord.Interaction,
             embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url)
             if origin: embed.add_field(name='Copy from', value=message.jump_url, inline=False)
             if copier: embed.add_field(name='Copy by', value=interaction.user.mention, inline=False)
-            result = await channel.send(embed=embed)
-            await interaction.response.send_message(f"複製訊息到: {result.jump_url}", ephemeral=(not notify))
+            if type(channel) is discord.ForumChannel:
+                if not title:
+                    await interaction.response.send_message(f"論壇頻道須輸入標題", ephemeral=True)
+                    return
+                else:
+                    _, result = await channel.create_thread(name=title, embed=embed)
+                    await interaction.response.send_message(f"複製訊息到: {result.jump_url}", ephemeral=(not notify))
+            else:
+                result = await channel.send(embed=embed)
+                await interaction.response.send_message(f"複製訊息到: {result.jump_url}", ephemeral=(not notify))
         except:
             await interaction.response.send_message(f"無法傳送", ephemeral=True)
     else:
@@ -144,7 +154,7 @@ async def anonymous(interaction: discord.Interaction,
                     title: str = None):
     """
     Args:
-        channel (Union[discord.TextChannel,discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]): 頻道、討論串
+        channel (Union[discord.TextChannel,discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]): 頻道或討論串
         content (str): 內容
         title (str, Optional): 標題 (論壇頻道為必填)
     """
@@ -158,7 +168,7 @@ async def anonymous(interaction: discord.Interaction,
                 await interaction.response.send_message(f"已傳送: {message.jump_url}", ephemeral=True)
         else:
             embed = discord.Embed(description=content)
-            embed.set_author(name='Anonymous')
+            embed.set_author(name='Anonymous', icon_url=interaction.guild.icon.url if interaction.guild.icon else None)
             if title: embed.title = title
             message = await channel.send(embed=embed)
             await interaction.response.send_message(f"已傳送: {message.jump_url}", ephemeral=True)
