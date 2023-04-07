@@ -112,7 +112,7 @@ async def copy(interaction: discord.Interaction,
     """
     Args:
         message_id (str): 訊息ID
-        channel Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]: 頻道或討論串
+        channel (Union[discord.TextChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]): 頻道或討論串
         notify (bool, Optional): 顯示複製通知 (預設: True)
         origin (bool, Optional): 顯示原始訊息 (預設: True)
         copier (bool, Optional): 顯示複製者 (預設: False)
@@ -135,6 +135,35 @@ async def copy(interaction: discord.Interaction,
             await interaction.response.send_message(f"無法傳送", ephemeral=True)
     else:
         await interaction.response.send_message("不在同一個伺服器", ephemeral=True)
+
+
+@tree.command(name='anonymous', description='匿名傳送訊息')
+async def anonymous(interaction: discord.Interaction,
+                    channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread],
+                    content: str,
+                    title: str = None):
+    """
+    Args:
+        channel (Union[discord.TextChannel,discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]): 頻道、討論串
+        content (str): 內容
+        title (str, Optional): 標題 (論壇頻道為必填)
+    """
+    try:
+        if type(channel) is discord.ForumChannel:
+            if not title:
+                await interaction.response.send_message(f"論壇頻道須輸入標題", ephemeral=True)
+                return
+            else:
+                _, message = await channel.create_thread(name=title, content=content)
+                await interaction.response.send_message(f"已傳送: {message.jump_url}", ephemeral=True)
+        else:
+            embed = discord.Embed(description=content)
+            embed.set_author(name='Anonymous')
+            if title: embed.title = title
+            message = await channel.send(embed=embed)
+            await interaction.response.send_message(f"已傳送: {message.jump_url}", ephemeral=True)
+    except:
+        await interaction.response.send_message(f"傳送失敗", ephemeral=True)
 
 
 @tree.command(name='reload', description='Reload bot config file')
