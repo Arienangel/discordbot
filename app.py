@@ -3,15 +3,15 @@ from discord import app_commands
 from discord.ext import tasks
 from typing import Union
 import datetime
-import json
+import yaml
 import sqlite3
 import games, chatgpt
 
 
 def load_config():
-    with open('config/app.json', encoding='utf-8') as f:
+    with open('config.yaml', encoding='utf-8') as f:
         global conf
-        conf = json.load(f)
+        conf = yaml.load(f, yaml.SafeLoader)['app']
 
 
 load_config()
@@ -32,9 +32,9 @@ async def on_message(message: discord.Message):
             if not message.content.startswith('##'):
                 if len(message.content) > 0:
                     gpt = chatgpt.gpt35(message.content)
-                    embed = discord.Embed(description=f'```{gpt.choices[0].message.content}```')
+                    embed = discord.Embed(description=f'{gpt.choices[0].message.content}')
                     embed.set_author(name=gpt.model, icon_url=conf['chatgpt']['icon'])
-                    embed.set_footer(text=f'id: {gpt.id}, tokens: {gpt.usage.total_tokens}')
+                    embed.set_footer(text=f'tokens: {gpt.usage.total_tokens}, id: {gpt.id}')
                     await message.reply(embed=embed)
     finally:
         user = str(message.author)
@@ -51,7 +51,7 @@ async def on_message(message: discord.Message):
 
 @tree.command(name='help', description='Show help message')
 async def help(interaction: discord.Interaction):
-    await interaction.response.send_message(conf['command']['help']['help_message'])
+    await interaction.response.send_message(conf['command']['help']['message'], ephemeral=True)
 
 
 @tree.command(name='chance', description='算機率')
@@ -108,7 +108,7 @@ async def copy(interaction: discord.Interaction,
                channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread],
                notify: bool = True,
                origin: bool = True,
-               copier: bool = False,
+               copier: bool = True,
                title: str = None):
     """
     Args:
@@ -116,8 +116,8 @@ async def copy(interaction: discord.Interaction,
         channel (Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]): 頻道或討論串
         notify (bool, Optional): 顯示複製通知 (預設: True)
         origin (bool, Optional): 顯示原始訊息 (預設: True)
-        copier (bool, Optional): 顯示複製者 (預設: False)
-        title (str, Optional): 論壇頻道新增貼文的標題
+        copier (bool, Optional): 顯示複製者 (預設: True)
+        title (str, Optional): 論壇頻道新增貼文的標題，或是在一般訊息上新增標題
 
     """
     try:
@@ -129,18 +129,22 @@ async def copy(interaction: discord.Interaction,
         try:
             embed = discord.Embed(description=message.content)
             embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url if message.author.display_avatar else None)
-            if origin: embed.add_field(name='Copy from', value=message.jump_url, inline=False)
-            if copier: embed.add_field(name='Copy by', value=interaction.user.mention, inline=False)
+            if (origin or copier):
+                field = ''
+                if origin: field = f'{field}from {message.jump_url} '
+                if copier: field = f'{field}by {interaction.user.mention} '
+                embed.add_field(name='Message copied', value=field, inline=False)
             if type(channel) is discord.ForumChannel:
                 if not title:
                     await interaction.response.send_message(f"論壇頻道須輸入標題", ephemeral=True)
                     return
                 else:
                     _, result = await channel.create_thread(name=title, embed=embed)
-                    await interaction.response.send_message(f"複製訊息到: {result.jump_url}", ephemeral=(not notify))
+                    await interaction.response.send_message(f"複製{message.jump_url}到{result.jump_url}", ephemeral=(not notify))
             else:
+                if title: embed.title = title
                 result = await channel.send(embed=embed)
-                await interaction.response.send_message(f"複製訊息到: {result.jump_url}", ephemeral=(not notify))
+                await interaction.response.send_message(f"複製{message.jump_url}到{result.jump_url}", ephemeral=(not notify))
         except:
             await interaction.response.send_message(f"無法傳送", ephemeral=True)
     else:
@@ -149,18 +153,19 @@ async def copy(interaction: discord.Interaction,
 
 @tree.command(name='anonymous', description='匿名傳送訊息')
 async def anonymous(interaction: discord.Interaction,
-                    channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread],
                     content: str,
-                    title: str = None):
+                    title: str = None,
+                    channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread] = None):
     """
     Args:
-        channel (Union[discord.TextChannel,discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]): 頻道或討論串
         content (str): 內容
-        title (str, Optional): 論壇頻道新增貼文的標題
+        title (str, Optional): 論壇頻道新增貼文的標題，或是在一般訊息上新增標題
+        channel (Union[discord.TextChannel,discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread], Optional): 頻道或討論串
     """
     try:
         embed = discord.Embed(description=content)
         embed.set_author(name='Anonymous', icon_url=interaction.guild.icon.url if interaction.guild.icon else None)
+        if not channel: channel = interaction.channel
         if type(channel) is discord.ForumChannel:
             if not title:
                 await interaction.response.send_message(f"論壇頻道須輸入標題", ephemeral=True)
@@ -187,10 +192,10 @@ async def reload(interaction: discord.Interaction):
 
 @tasks.loop(time=datetime.time(hour=13, minute=0, second=0))
 async def goodnight():
-    for channel_id in conf['goodnight']['channel']:
+    for channel_id in conf['event']['goodnight']['channel']:
         try:
             channel = client.get_channel(channel_id)
-            await channel.send('@everyone 晚上9點了該吃藥了')
+            await channel.send(conf['event']['goodnight']['message'])
         except:
             pass
 
@@ -204,4 +209,4 @@ async def on_ready():
 
 
 if __name__ == '__main__':
-    client.run(conf['TOKEN'])
+    client.run(conf['bot']['token'])
