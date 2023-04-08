@@ -26,12 +26,10 @@ async def on_message(message: discord.Message):
     try:
         if message.author == client.user:
             return
-        if message.content.startswith('$help'):
-            pass
         if message.channel.id in conf['chatgpt']['channel']:
             if not message.content.startswith('##'):
-                if len(message.content) > 0:
-                    gpt = chatgpt.gpt35(message.content)
+                if len(message.content) > 0: # don't reply sticker or embed messages
+                    gpt = await chatgpt.gpt35(message.content)
                     embed = discord.Embed(description=f'{gpt.choices[0].message.content}')
                     embed.set_author(name=gpt.model, icon_url=conf['chatgpt']['icon'])
                     embed.set_footer(text=f'tokens: {gpt.usage.total_tokens}, id: {gpt.id}')

@@ -9,6 +9,6 @@ temperature = conf['temperature']
 max_tokens = conf['max_tokens']
 
 
-def gpt35(message:str):
-    completion = openai.ChatCompletion.create(model="gpt-3.5-turbo", messages=[{"role": "user", "content": message}], temperature=temperature, max_tokens=max_tokens)
+async def gpt35(message:str):
+    completion = await openai.ChatCompletion.acreate(model="gpt-3.5-turbo", messages=[{"role": "user", "content": message}], temperature=temperature, max_tokens=max_tokens)
     return completion
