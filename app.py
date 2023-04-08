@@ -20,8 +20,6 @@ intents.message_content = True
 client = discord.Client(intents=intents)
 tree = app_commands.CommandTree(client)
 
-chatgpt_channel = conf['chatgpt_channel']
-
 
 @client.event
 async def on_message(message: discord.Message):
@@ -30,12 +28,14 @@ async def on_message(message: discord.Message):
             return
         if message.content.startswith('$help'):
             pass
-            #await message.channel.send('Transmutation official bot\nReport issues to Admin')
-        if message.channel.id in chatgpt_channel:
+        if message.channel.id in conf['chatgpt']['channel']:
             if not message.content.startswith('##'):
                 if len(message.content) > 0:
-                    reply = chatgpt.gpt35(message.content)
-                    await message.reply(reply)
+                    gpt = chatgpt.gpt35(message.content)
+                    embed = discord.Embed(description=f'```{gpt.choices[0].message.content}```')
+                    embed.set_author(name=gpt.model, icon_url=conf['chatgpt']['icon'])
+                    embed.set_footer(text=f'id: {gpt.id}, tokens: {gpt.usage.total_tokens}')
+                    await message.reply(embed=embed)
     finally:
         user = str(message.author)
         if message.guild: guild = message.guild.name
@@ -117,7 +117,7 @@ async def copy(interaction: discord.Interaction,
         notify (bool, Optional): 顯示複製通知 (預設: True)
         origin (bool, Optional): 顯示原始訊息 (預設: True)
         copier (bool, Optional): 顯示複製者 (預設: False)
-        title (str, Optional): 論壇頻道標題 (預設: None)
+        title (str, Optional): 論壇頻道新增貼文的標題
 
     """
     try:
@@ -128,7 +128,7 @@ async def copy(interaction: discord.Interaction,
     if message.guild == channel.guild:
         try:
             embed = discord.Embed(description=message.content)
-            embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url)
+            embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url if message.author.display_avatar else None)
             if origin: embed.add_field(name='Copy from', value=message.jump_url, inline=False)
             if copier: embed.add_field(name='Copy by', value=interaction.user.mention, inline=False)
             if type(channel) is discord.ForumChannel:
@@ -156,19 +156,19 @@ async def anonymous(interaction: discord.Interaction,
     Args:
         channel (Union[discord.TextChannel,discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]): 頻道或討論串
         content (str): 內容
-        title (str, Optional): 標題 (論壇頻道為必填)
+        title (str, Optional): 論壇頻道新增貼文的標題
     """
     try:
+        embed = discord.Embed(description=content)
+        embed.set_author(name='Anonymous', icon_url=interaction.guild.icon.url if interaction.guild.icon else None)
         if type(channel) is discord.ForumChannel:
             if not title:
                 await interaction.response.send_message(f"論壇頻道須輸入標題", ephemeral=True)
                 return
             else:
-                _, message = await channel.create_thread(name=title, content=content)
+                _, message = await channel.create_thread(name=title, embed=embed)
                 await interaction.response.send_message(f"已傳送: {message.jump_url}", ephemeral=True)
         else:
-            embed = discord.Embed(description=content)
-            embed.set_author(name='Anonymous', icon_url=interaction.guild.icon.url if interaction.guild.icon else None)
             if title: embed.title = title
             message = await channel.send(embed=embed)
             await interaction.response.send_message(f"已傳送: {message.jump_url}", ephemeral=True)
@@ -186,17 +186,21 @@ async def reload(interaction: discord.Interaction):
 
 
 @tasks.loop(time=datetime.time(hour=13, minute=0, second=0))
-async def Goodnight():
-    channel = client.get_channel(1051895348802617458)
-    await channel.send('@everyone 晚上9點了該吃藥了')
+async def goodnight():
+    for channel_id in conf['goodnight']['channel']:
+        try:
+            channel = client.get_channel(channel_id)
+            await channel.send('@everyone 晚上9點了該吃藥了')
+        except:
+            pass
 
 
 @client.event
 async def on_ready():
     print(f'We have logged in as {client.user}')
     await tree.sync()
-    if not Goodnight.is_running():
-        Goodnight.start()
+    if not goodnight.is_running():
+        goodnight.start()
 
 
 if __name__ == '__main__':
