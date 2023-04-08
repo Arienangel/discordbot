@@ -24,17 +24,27 @@ tree = app_commands.CommandTree(client)
 @client.event
 async def on_message(message: discord.Message):
     try:
-        if message.author == client.user:
-            return
-        if message.channel.id in conf['chatgpt']['channel']:
-            if not message.content.startswith('##'):
-                if len(message.content) > 0: # don't reply sticker or embed messages
+        if message.author == client.user: return # prevent loop
+        if message.is_system(): return # ignore system messages
+        if isinstance(message.channel, discord.DMChannel): # forward private messages
+            for user_id in conf['DM']['forward']:
+                try: 
+                    user = await client.fetch_user(user_id)
+                    embed = discord.Embed(description=message.content)
+                    embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url if message.author.display_avatar else None)
+                    for attachment in message.attachments:
+                        embed.add_field(name=attachment.content_type, value=attachment.url, inline=False)
+                    await user.send(embed=embed)
+                except: continue
+        if message.channel.id in conf['chatgpt']['channel']: # chatgpt chatbot
+            if not message.content.startswith('##'): # ignore messages start with ##
+                if len(message.content) > 0: # ignore sticker or embed messages
                     gpt = await chatgpt.gpt35(message.content)
                     embed = discord.Embed(description=f'{gpt.choices[0].message.content}')
                     embed.set_author(name=gpt.model, icon_url=conf['chatgpt']['icon'])
                     embed.set_footer(text=f'tokens: {gpt.usage.total_tokens}, id: {gpt.id}')
                     await message.reply(embed=embed)
-    finally:
+    finally: # record message to sql
         user = str(message.author)
         if message.guild: guild = message.guild.name
         else: return
@@ -118,6 +128,9 @@ async def copy(interaction: discord.Interaction,
         title (str, Optional): 論壇頻道新增貼文的標題，或是在一般訊息上新增標題
 
     """
+    if not check_send_permission(interaction.user, channel):
+        await interaction.response.send_message("你沒有在此頻道發送訊息的權限", ephemeral=True)
+        return
     try:
         message = await interaction.channel.fetch_message(int(message_id))
     except:
@@ -160,6 +173,9 @@ async def anonymous(interaction: discord.Interaction,
         title (str, Optional): 論壇頻道新增貼文的標題，或是在一般訊息上新增標題
         channel (Union[discord.TextChannel,discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread], Optional): 頻道或討論串
     """
+    if not check_send_permission(interaction.user, channel):
+        await interaction.response.send_message("你沒有在此頻道發送訊息的權限", ephemeral=True)
+        return
     try:
         embed = discord.Embed(description=content)
         embed.set_author(name='Anonymous', icon_url=interaction.guild.icon.url if interaction.guild.icon else None)
@@ -195,7 +211,7 @@ async def goodnight():
             channel = client.get_channel(channel_id)
             await channel.send(conf['event']['goodnight']['message'])
         except:
-            pass
+            continue
 
 
 @client.event
@@ -205,6 +221,12 @@ async def on_ready():
     if not goodnight.is_running():
         goodnight.start()
 
+
+def check_send_permission(user: discord.User, channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread])->bool:
+    if isinstance(channel, discord.Thread) and channel.permissions_for(user).send_messages_in_threads is False: return False
+    elif isinstance(channel, discord.ForumChannel) and channel.permissions_for(user).create_public_threads is False: return False
+    elif isinstance(channel, (discord.TextChannel, discord.VoiceChannel, discord.StageChannel)) and channel.permissions_for(user).send_messages is False: return False
+    else: return True
 
 if __name__ == '__main__':
     client.run(conf['bot']['token'])
