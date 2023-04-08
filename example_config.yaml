@@ -5,6 +5,9 @@ app:
   DM: 
     forward: # forward private messages to user
       - 1029306511663975487
+  report: 
+    forward: # bug report
+      - 1029306511663975487
   chatgpt: # chatgpt chatbot channel
     channel:
       - 1092365663408594763

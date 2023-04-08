@@ -27,13 +27,14 @@ async def on_message(message: discord.Message):
         if message.author == client.user: return # prevent loop
         if message.is_system(): return # ignore system messages
         if isinstance(message.channel, discord.DMChannel): # forward private messages
+            embed = discord.Embed(description=message.content)
+            embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url if message.author.display_avatar else None)
+            embed.title = 'Private message'
+            for attachment in message.attachments:
+                embed.add_field(name=attachment.content_type, value=attachment.url, inline=False)
             for user_id in conf['DM']['forward']:
                 try: 
                     user = await client.fetch_user(user_id)
-                    embed = discord.Embed(description=message.content)
-                    embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url if message.author.display_avatar else None)
-                    for attachment in message.attachments:
-                        embed.add_field(name=attachment.content_type, value=attachment.url, inline=False)
                     await user.send(embed=embed)
                 except: continue
         if message.channel.id in conf['chatgpt']['channel']: # chatgpt chatbot
@@ -193,6 +194,23 @@ async def anonymous(interaction: discord.Interaction,
             await interaction.response.send_message(f"已傳送: {message.jump_url}", ephemeral=True)
     except:
         await interaction.response.send_message(f"傳送失敗", ephemeral=True)
+
+
+@tree.command(name='report', description='Report issues')
+async def report(interaction: discord.Interaction, content: str):
+    """
+    Args:
+        content (str): 內容
+    """    
+    embed = discord.Embed(description=content)
+    embed.set_author(name=str(interaction.user), icon_url=interaction.user.display_avatar.url if interaction.user.display_avatar else None)
+    embed.title = 'Report message'
+    for user_id in conf['report']['forward']:
+        try: 
+            user = await client.fetch_user(user_id)
+            await user.send(embed=embed)
+        except: continue
+    await interaction.response.send_message(f"Finish", ephemeral=True)
 
 
 @tree.command(name='reload', description='Reload bot config file')
