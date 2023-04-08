@@ -1,0 +1,35 @@
+app:
+  bot: # discord bot setup
+    token: ""
+    client secret: ""
+  chatgpt: # chatgpt chatbot channel
+    channel:
+      - 1092365663408594763
+    icon: "https://cdn.discordapp.com/**.webp"
+  command: # bot commmand
+    help:
+      message: |
+        Help message
+    reload:
+      permission: # allowed user id
+        - 1025037519630347687
+  event:
+    goodnight:
+      channel:
+        - 1038160548800835188
+      message: '@everyone'
+
+# module: chatgpt
+chatgpt: 
+  token: ""
+  temperature: 1
+  max_tokens: 500
+
+# module: games
+games:
+  chance:
+    slope: 91
+    intercept: 5
+  fortune:
+    key: ["大吉", "吉", "小吉", "尚可", "小兇", "兇", "大凶"]
+    sep: [0, 0.05, 0.15, 0.35, 0.65, 0.85, 0.95, 1]
