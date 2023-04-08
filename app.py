@@ -32,10 +32,10 @@ async def on_message(message: discord.Message):
             embed.title = 'Private message'
             for attachment in message.attachments:
                 embed.add_field(name=attachment.content_type, value=attachment.url, inline=False)
-            for user_id in conf['DM']['forward']:
+            for channel_id in conf['DM']['forward']:
                 try: 
-                    user = await client.fetch_user(user_id)
-                    await user.send(embed=embed)
+                    channel= await client.fetch_channel(channel_id)
+                    await channel.send(embed=embed)
                 except: continue
         if message.channel.id in conf['chatgpt']['channel']: # chatgpt chatbot
             if not message.content.startswith('##'): # ignore messages start with ##
@@ -205,10 +205,10 @@ async def report(interaction: discord.Interaction, content: str):
     embed = discord.Embed(description=content)
     embed.set_author(name=str(interaction.user), icon_url=interaction.user.display_avatar.url if interaction.user.display_avatar else None)
     embed.title = 'Report message'
-    for user_id in conf['report']['forward']:
+    for channel_id in conf['report']['forward']:
         try: 
-            user = await client.fetch_user(user_id)
-            await user.send(embed=embed)
+            channel= await client.fetch_channel(channel_id)
+            await channel.send(embed=embed)
         except: continue
     await interaction.response.send_message(f"Finish", ephemeral=True)
 

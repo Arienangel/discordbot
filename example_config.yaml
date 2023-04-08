@@ -3,10 +3,10 @@ app:
     token: ""
     client secret: ""
   DM: 
-    forward: # forward private messages to user
+    forward: # forward private messages to channel
       - 1029306511663975487
   report: 
-    forward: # bug report
+    forward: # bug report to channel
       - 1029306511663975487
   chatgpt: # chatgpt chatbot channel
     channel:
