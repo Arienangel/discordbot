@@ -145,6 +145,8 @@ async def copy(interaction: discord.Interaction,
         try:
             embed = discord.Embed(description=message.content)
             embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url if message.author.display_avatar else None)
+            for attachment in message.attachments:
+                embed.add_field(name=attachment.content_type, value=attachment.url, inline=False)
             if (origin or copier):
                 field = ''
                 if origin: field = f'{field}from {message.jump_url} '
