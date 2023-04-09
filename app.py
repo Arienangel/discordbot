@@ -40,11 +40,15 @@ async def on_message(message: discord.Message):
         if message.channel.id in conf['chatgpt']['channel']: # chatgpt chatbot
             if not message.content.startswith('##'): # ignore messages start with ##
                 if len(message.content) > 0: # ignore sticker or embed messages
-                    gpt = await chatgpt.gpt35(message.content)
-                    embed = discord.Embed(description=f'{gpt.choices[0].message.content}')
-                    embed.set_author(name=gpt.model, icon_url=conf['chatgpt']['icon'])
-                    embed.set_footer(text=f'tokens: {gpt.usage.total_tokens}, id: {gpt.id}')
-                    await message.reply(embed=embed)
+                    wait = await message.reply('Waiting for reply...', allowed_mentions= discord.AllowedMentions.none())
+                    try: 
+                        gpt, temp = await chatgpt.gpt35(message.content, conf['chatgpt']['temperature'])
+                        embed = discord.Embed(description=f'{gpt.choices[0].message.content}')
+                        embed.set_author(name=gpt.model, icon_url=conf['chatgpt']['icon'])
+                        embed.set_footer(text=f'temp: {temp:.2f}, tokens: {gpt.usage.total_tokens}, id: {gpt.id}')
+                        await wait.edit(content=None, embed=embed)
+                    except:
+                        await wait.edit(content='Something went wrong')
     finally: # record message to sql
         user = str(message.author)
         if message.guild: guild = message.guild.name
@@ -69,7 +73,7 @@ async def chance(interaction: discord.Interaction, ask: str = None):
     Args:
         ask (str, optional): 事項
     """
-    await interaction.response.send_message(f'{ask if ask else "機率"}: {games.chance()}')
+    await interaction.response.send_message(f'{ask if ask else "機率"}: {games.chance():.0%}')
 
 
 @tree.command(name='fortune', description='你的運勢')

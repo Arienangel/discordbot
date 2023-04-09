@@ -6,8 +6,8 @@ with open('config.yaml', encoding='utf-8') as f:
 
 
 def chance():
-    n = random.random() * conf['chance']['slope'] + conf['chance']['intercept']
-    return f'{n:.0f}%'
+    n = random.random() * (conf['chance'][1] - conf['chance'][0]) + conf['chance'][0]
+    return n
 
 
 def fortune():
