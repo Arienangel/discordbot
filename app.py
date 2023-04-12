@@ -4,7 +4,7 @@ from discord.ext import tasks
 from typing import Union
 import datetime
 import yaml
-import sqlite3
+import aiosqlite
 import games, chatgpt
 
 
@@ -45,21 +45,15 @@ async def on_message(message: discord.Message):
                         gpt, temp = await chatgpt.gpt35(message.content, conf['chatgpt']['temperature'])
                         embed = discord.Embed(description=f'{gpt.choices[0].message.content}')
                         embed.set_author(name=gpt.model, icon_url=conf['chatgpt']['icon'])
-                        embed.set_footer(text=f'temp: {temp:.2f}, tokens: {gpt.usage.total_tokens}, id: {gpt.id}')
+                        embed.set_footer(text=f'temp: {round(temp, 2):.2f}, tokens: {gpt.usage.total_tokens}, id: {gpt.id}')
                         await wait.edit(content=None, embed=embed)
                     except:
                         await wait.edit(content='Something went wrong')
-    finally: # record message to sql
-        user = str(message.author)
-        if message.guild: guild = message.guild.name
-        else: return
-        channel = message.channel.name
-        time = (message.created_at + datetime.timedelta(hours=8)).strftime('%Y%m%d-%H%M%S')
-        content = message.content
-        with sqlite3.connect(f'data/{guild}.db') as con:
-            cur = con.cursor()
-            cur.execute(f'CREATE TABLE IF NOT EXISTS `{channel}` (time, user, content);')
-            cur.execute(f'INSERT INTO `{channel}` VALUES (?,?,?);', [time, user, content])
+    finally:  # record message to sql
+        async with aiosqlite.connect(f'data/{message.guild.id if message.guild else "private"}.db') as db:
+            await db.execute(f'CREATE TABLE IF NOT EXISTS `{message.channel.id}` (time, user, content);')
+            await db.execute(f'INSERT INTO `{message.channel.id}` VALUES (?,?,?);', [round(message.created_at.timestamp()), message.author.id, message.content])
+            await db.commit()
 
 
 @tree.command(name='help', description='Show help message')
@@ -73,7 +67,7 @@ async def chance(interaction: discord.Interaction, ask: str = None):
     Args:
         ask (str, optional): 事項
     """
-    await interaction.response.send_message(f'{ask if ask else "機率"}: {games.chance():.0%}')
+    await interaction.response.send_message(f'{ask if ask else "機率"}: {round(games.chance(), 2):.0%}')
 
 
 @tree.command(name='fortune', description='你的運勢')
@@ -246,11 +240,17 @@ async def on_ready():
         goodnight.start()
 
 
-def check_send_permission(user: discord.User, channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread])->bool:
+def check_send_permission(
+        user: discord.User, channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel,
+                                           discord.Thread]) -> bool:
     if isinstance(channel, discord.Thread) and channel.permissions_for(user).send_messages_in_threads is False: return False
     elif isinstance(channel, discord.ForumChannel) and channel.permissions_for(user).create_public_threads is False: return False
-    elif isinstance(channel, (discord.TextChannel, discord.VoiceChannel, discord.StageChannel)) and channel.permissions_for(user).send_messages is False: return False
-    else: return True
+    elif isinstance(channel,
+                    (discord.TextChannel, discord.VoiceChannel, discord.StageChannel)) and channel.permissions_for(user).send_messages is False:
+        return False
+    else:
+        return True
+
 
 if __name__ == '__main__':
     client.run(conf['bot']['token'])
