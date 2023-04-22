@@ -5,6 +5,7 @@ from typing import Union
 import datetime
 import yaml
 import aiosqlite
+import re
 import games, chatgpt
 
 
@@ -23,37 +24,52 @@ tree = app_commands.CommandTree(client)
 
 @client.event
 async def on_message(message: discord.Message):
-    try:
-        if message.author == client.user: return # prevent loop
-        if message.is_system(): return # ignore system messages
-        if isinstance(message.channel, discord.DMChannel): # forward private messages
-            embed = discord.Embed(description=message.content)
-            embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url if message.author.display_avatar else None)
-            embed.title = 'Private message'
-            for attachment in message.attachments:
-                embed.add_field(name=attachment.content_type, value=attachment.url, inline=False)
-            for channel_id in conf['DM']['forward']:
-                try: 
-                    channel= await client.fetch_channel(channel_id)
-                    await channel.send(embed=embed)
-                except: continue
-        if message.channel.id in conf['chatgpt']['channel']: # chatgpt chatbot
-            if not message.content.startswith('##'): # ignore messages start with ##
-                if len(message.content) > 0: # ignore sticker or embed messages
-                    wait = await message.reply('Waiting for reply...', allowed_mentions= discord.AllowedMentions.none())
-                    try: 
-                        gpt, temp = await chatgpt.gpt35(message.content, conf['chatgpt']['temperature'])
-                        embed = discord.Embed(description=f'{gpt.choices[0].message.content}')
-                        embed.set_author(name=gpt.model, icon_url=conf['chatgpt']['icon'])
-                        embed.set_footer(text=f'temp: {round(temp, 2):.2f}, tokens: {gpt.usage.total_tokens}, id: {gpt.id}')
-                        await wait.edit(content=None, embed=embed)
-                    except:
-                        await wait.edit(content='Something went wrong')
-    finally:  # record message to sql
+
+    # forward private messages
+    async def forward_private():
+        embed = discord.Embed(description=message.content)
+        embed.set_author(name=str(message.author), icon_url=message.author.display_avatar.url if message.author.display_avatar else None)
+        embed.title = 'Private message'
+        for attachment in message.attachments:
+            embed.add_field(name=attachment.content_type, value=attachment.url, inline=False)
+        for channel_id in conf['DM']['forward']:
+            try:
+                channel = await client.fetch_channel(channel_id)
+                await channel.send(embed=embed)
+            except:
+                continue
+
+    # chatgpt chatbot
+    async def chatbot():
+        wait = await message.reply('Waiting for reply...', allowed_mentions=discord.AllowedMentions.none())
+        try:
+            gpt, temp = await chatgpt.gpt35(message.content, conf['chatgpt']['temperature'])
+            embed = discord.Embed(description=f'{gpt.choices[0].message.content}')
+            embed.set_author(name=gpt.model, icon_url=conf['chatgpt']['icon'])
+            embed.set_footer(text=f'temp: {round(temp, 2):.2f}, tokens: {gpt.usage.total_tokens}, id: {gpt.id}')
+            await wait.edit(content=None, embed=embed)
+        except:
+            await wait.edit(content='Something went wrong')
+
+    # record message to sql
+    async def record_message():
         async with aiosqlite.connect(f'data/{message.guild.id if message.guild else "private"}.db') as db:
-            await db.execute(f'CREATE TABLE IF NOT EXISTS `{message.channel.id}` (time, user, content);')
-            await db.execute(f'INSERT INTO `{message.channel.id}` VALUES (?,?,?);', [round(message.created_at.timestamp()), message.author.id, message.content])
+            await db.execute(f'CREATE TABLE IF NOT EXISTS `{message.channel.id}` (time, user, content, attachment);')
+            await db.execute(f'INSERT INTO `{message.channel.id}` VALUES (?,?,?,?);', [
+                round(message.created_at.timestamp()), message.author.id, message.content,
+                '\n'.join([attachment.url for attachment in message.attachments]) if message.attachments else None
+            ])
             await db.commit()
+
+    await record_message()
+    if message.author == client.user: return  # prevent loop
+    if message.is_system(): return  # ignore system messages
+    if isinstance(message.channel, discord.DMChannel): await forward_private()
+    if message.channel.id in conf['chatgpt']['channel']:  # chatbot channel
+        if not message.content.startswith('##'):  # ignore messages start with ##
+            if not re.match('^<a{0,1}:.*?:\d+>', message.content):  # ignore messages start with emoji
+                if len(message.content) > 0:  # ignore sticker or embed messages
+                    await chatbot()
 
 
 @tree.command(name='help', description='Show help message')
@@ -201,15 +217,16 @@ async def report(interaction: discord.Interaction, content: str):
     """
     Args:
         content (str): 內容
-    """    
+    """
     embed = discord.Embed(description=content)
     embed.set_author(name=str(interaction.user), icon_url=interaction.user.display_avatar.url if interaction.user.display_avatar else None)
     embed.title = 'Report message'
     for channel_id in conf['report']['forward']:
-        try: 
-            channel= await client.fetch_channel(channel_id)
+        try:
+            channel = await client.fetch_channel(channel_id)
             await channel.send(embed=embed)
-        except: continue
+        except:
+            continue
     await interaction.response.send_message(f"Finish", ephemeral=True)
 
 
