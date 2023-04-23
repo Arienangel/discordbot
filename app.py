@@ -180,6 +180,7 @@ async def copy(interaction: discord.Interaction,
 
 
 @tree.command(name='anonymous', description='匿名傳送訊息')
+@app_commands.checks.cooldown(1, 60)
 async def anonymous(interaction: discord.Interaction,
                     content: str,
                     title: str = None,
@@ -213,6 +214,7 @@ async def anonymous(interaction: discord.Interaction,
 
 
 @tree.command(name='report', description='Report issues')
+@app_commands.checks.cooldown(1, 60)
 async def report(interaction: discord.Interaction, content: str):
     """
     Args:
@@ -237,6 +239,14 @@ async def reload(interaction: discord.Interaction):
         await interaction.response.send_message("Finish", ephemeral=True)
     else:
         await interaction.response.send_message("Permission denied", ephemeral=True)
+
+
+@tree.error
+async def on_error(interaction: discord.Interaction, error: app_commands.errors.AppCommandError):
+    if isinstance(error, app_commands.errors.CommandOnCooldown):
+        await interaction.response.send_message(f'Time out. Retry after {round(error.retry_after)}s', ephemeral=True)
+    else:
+        await interaction.response.send_message(f'Something went wrong', ephemeral=True)
 
 
 @tasks.loop(time=datetime.time(hour=13, minute=0, second=0))
