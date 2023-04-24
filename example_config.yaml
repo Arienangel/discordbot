@@ -11,6 +11,9 @@ app:
   on_guild_emojis_update: # send emoji updates to guild channel
     1020269242061123066: # guild id
       - 1021236086008257170 # channel id
+  on_guild_stickers_update: # send sticker updates to guild channel
+    1020269242061123066: # guild id
+      - 1021236086008257170 # channel id
   chatgpt: # chatgpt chatbot channel
     temperature: [0.8, 1.2] # number or [min, max]
     channel:

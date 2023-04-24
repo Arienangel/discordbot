@@ -108,6 +108,20 @@ async def on_guild_emojis_update(guild: discord.Guild, before: list[discord.Emoj
                 await channel.send(embed=embed)
 
 
+@client.event
+async def on_guild_stickers_update(guild: discord.Guild, before: list[discord.GuildSticker], after: list[discord.GuildSticker]):
+    if guild.id in conf['on_guild_stickers_update']:
+        for sticker in set(before).symmetric_difference(set(after)):
+            if len(before) > len(after):
+                embed = discord.Embed(description=f'**Sticker Deleted:** {sticker.url}', color=discord.Colour.red())
+            elif len(before) < len(after):
+                embed = discord.Embed(description=f'**Sticker Created:** {sticker.url}', color=discord.Colour.red())
+            embed.set_author(name=f'{str(guild)}', icon_url=guild.icon.url if guild.icon else None)
+            for channel_id in conf['on_guild_stickers_update'][guild.id]:
+                channel = await client.fetch_channel(int(channel_id))
+                await channel.send(embed=embed)
+
+
 @tree.command(name='help', description='Show help message')
 async def help(interaction: discord.Interaction):
     await interaction.response.send_message(conf['command']['help']['message'], ephemeral=True)
