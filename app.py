@@ -54,8 +54,9 @@ async def on_message(message: discord.Message):
     # record message to sql
     async def record_message():
         async with aiosqlite.connect(f'data/{message.guild.id if message.guild else "private"}.db') as db:
-            await db.execute(f'CREATE TABLE IF NOT EXISTS `{message.channel.id}` (time, user, content, attachment);')
-            await db.execute(f'INSERT INTO `{message.channel.id}` VALUES (?,?,?,?);', [
+            await db.execute(f'CREATE TABLE IF NOT EXISTS `{message.channel.id}` (id, time, user, content, attachment);')
+            await db.execute(f'INSERT INTO `{message.channel.id}` VALUES (?,?,?,?,?);', [
+                message.id,
                 round(message.created_at.timestamp()), message.author.id, message.content,
                 '\n'.join([attachment.url for attachment in message.attachments]) if message.attachments else None
             ])
@@ -70,6 +71,27 @@ async def on_message(message: discord.Message):
             if not re.match('^<a{0,1}:.*?:\d+>', message.content):  # ignore messages start with emoji
                 if len(message.content) > 0:  # ignore sticker or embed messages
                     await chatbot()
+
+
+@client.event
+async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
+    if not payload.guild_id: return  ## private message
+    try:
+        if payload.guild_id in conf['on_message_delete']:
+            async with aiosqlite.connect(f'data/{payload.guild_id}.db') as db:
+                async with db.execute(f'SELECT * FROM `{payload.channel_id}` WHERE id=?;', [payload.message_id]) as cur:
+                    async for row in cur:
+                        user = await client.fetch_user(int(row[2]))
+                        text=f'**Message sent by <@{row[2]}> Deleted in <#{payload.channel_id}>**'
+                        if row[3]: text=text+'\n'+row[3]
+                        if row[4]: text=text+'\n**Attachment**\n'+row[4]
+                        embed = discord.Embed(description=text, color=discord.Colour.red())
+                        embed.set_author(name=str(user), icon_url=user.display_avatar.url if user.display_avatar else None)
+                        for channel_id in conf['on_message_delete'][payload.guild_id]:
+                            channel = await client.fetch_channel(int(channel_id))
+                            await channel.send(embed=embed)
+    except Exception as E:
+        pass
 
 
 @tree.command(name='help', description='Show help message')
@@ -223,7 +245,7 @@ async def report(interaction: discord.Interaction, content: str):
     embed = discord.Embed(description=content)
     embed.set_author(name=str(interaction.user), icon_url=interaction.user.display_avatar.url if interaction.user.display_avatar else None)
     embed.title = 'Report message'
-    for channel_id in conf['report']['forward']:
+    for channel_id in conf['command']['report']['forward']:
         try:
             channel = await client.fetch_channel(channel_id)
             await channel.send(embed=embed)

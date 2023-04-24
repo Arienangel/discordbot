@@ -5,9 +5,9 @@ app:
   DM: 
     forward: # forward private messages to channel
       - 1029306511663975487
-  report: 
-    forward: # bug report to channel
-      - 1029306511663975487
+  on_message_delete: # send deleted message to guild channel
+    1020269242061123066: # guild id
+      - 1021236086008257170 # channel id
   chatgpt: # chatgpt chatbot channel
     temperature: [0.8, 1.2] # number or [min, max]
     channel:
@@ -17,6 +17,9 @@ app:
     help:
       message: |
         Help message
+    report: 
+      forward: # bug report to channel
+        - 1029306511663975487
     reload:
       permission: # allowed user id
         - 1025037519630347687
