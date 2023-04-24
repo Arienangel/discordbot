@@ -82,9 +82,9 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
                 async with db.execute(f'SELECT * FROM `{payload.channel_id}` WHERE id=?;', [payload.message_id]) as cur:
                     async for row in cur:
                         user = await client.fetch_user(int(row[2]))
-                        text=f'**Message sent by <@{row[2]}> Deleted in <#{payload.channel_id}>**'
-                        if row[3]: text=text+'\n'+row[3]
-                        if row[4]: text=text+'\n**Attachment**\n'+row[4]
+                        text = f'**Message sent by <@{row[2]}> Deleted in <#{payload.channel_id}>**'
+                        if row[3]: text = text + '\n' + row[3]
+                        if row[4]: text = text + '\n**Attachment**\n' + row[4]
                         embed = discord.Embed(description=text, color=discord.Colour.red())
                         embed.set_author(name=str(user), icon_url=user.display_avatar.url if user.display_avatar else None)
                         for channel_id in conf['on_message_delete'][payload.guild_id]:
@@ -92,6 +92,20 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
                             await channel.send(embed=embed)
     except Exception as E:
         pass
+
+
+@client.event
+async def on_guild_emojis_update(guild: discord.Guild, before: list[discord.Emoji], after: list[discord.Emoji]):
+    if guild.id in conf['on_guild_emojis_update']:
+        for emoji in set(before).symmetric_difference(set(after)):
+            if len(before) > len(after):
+                embed = discord.Embed(description=f'**Emoji Deleted:** {emoji.url}', color=discord.Colour.red())
+            elif len(before) < len(after):
+                embed = discord.Embed(description=f'**Emoji Created:** {emoji.url}', color=discord.Colour.red())
+            embed.set_author(name=f'{str(guild)}', icon_url=guild.icon.url if guild.icon else None)
+            for channel_id in conf['on_guild_emojis_update'][guild.id]:
+                channel = await client.fetch_channel(int(channel_id))
+                await channel.send(embed=embed)
 
 
 @tree.command(name='help', description='Show help message')
