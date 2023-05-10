@@ -10,10 +10,11 @@ from discord.ext import tasks
 
 import chatgpt
 import games
+from RPG import RPG_views, activity, item, user
 
 
 def load_config():
-    with open('config.yaml', encoding='utf-8') as f:
+    with open('config/app.yaml', encoding='utf-8') as f:
         global conf
         conf = yaml.load(f, yaml.SafeLoader)['app']
 
@@ -56,7 +57,7 @@ async def on_message(message: discord.Message):
 
     # record message to sql
     async def record_message():
-        async with aiosqlite.connect(f'data/{message.guild.id if message.guild else "private"}.db') as db:
+        async with aiosqlite.connect(f'data/messages/{message.guild.id if message.guild else "private"}.db') as db:
             await db.execute(f'CREATE TABLE IF NOT EXISTS `{message.channel.id}` (id, time, user, content, attachment);')
             await db.execute(f'INSERT INTO `{message.channel.id}` VALUES (?,?,?,?,?);', [
                 message.id,
@@ -346,6 +347,74 @@ async def reload(interaction: discord.Interaction):
         await interaction.response.send_message("Permission denied", ephemeral=True)
 
 
+@tree.command(description='開始遊戲，顯示RPG資訊')
+async def rpg_info(interaction: discord.Interaction):
+    embed = discord.Embed(title='RPG資訊', timestamp=datetime.datetime.now())
+    embed.description='測試中功能，使用`/rpg_givetool`取得測試鎬\n目前工作只有挖礦，每10秒可以挖一次'
+    embed.add_field(name='玩家', value=f'{interaction.user.mention}')
+    embed.add_field(name='現在時間', value=f'<t:{round(datetime.datetime.now().timestamp())}>')
+    await interaction.response.send_message(embed=embed, view=RPG_views.RPG_dropdown(), ephemeral=True)
+
+
+@app_commands.checks.cooldown(1, 10)
+@tree.command(description='挖礦')
+async def rpg_mine(interaction: discord.Interaction, tool: str):
+    """
+    Args:
+        tool (str): 工具名稱
+    """
+    u = await user.User.read_sql(interaction.user.id)
+    t = u.inventory.get_item_by_name(tool)
+    a = activity.Mining()
+    if t:
+        res = await a.mine(u, t)
+        embed = discord.Embed(title='挖礦結果', timestamp=datetime.datetime.now())
+        if res:
+            embed.description = '你挖到了\n```' + '\n'.join([f'{x.name}: {x.amount}' for x in res]) + '```'
+        else:
+            embed.description = '你沒有挖到任何東西，空手而歸'
+        embed.add_field(name='位置', value=str(u.position.coordinate))
+        embed.add_field(name='工具', value=f'{t.name}[{t.durability}]')
+        await interaction.response.send_message(embed=embed, ephemeral=True)
+        await u.write_sql()
+        return
+    else:
+        await interaction.response.send_message(f'你沒有這個工具', ephemeral=True)
+        return
+
+
+@rpg_mine.autocomplete('tool')
+async def mine_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    u = await user.User.read_sql(interaction.user.id)
+    return [app_commands.Choice(name=i.name, value=i.name) for i in u.inventory.get_items_by_type('Tool')]
+
+
+@tree.command(description='goto')
+async def goto(interaction: discord.Interaction, z: int = 64, x: int = 0, y: int = 0):
+    """
+    Args:
+        z (int, optional): 高度 (0~64地表)
+        x (int, optional): 東西向
+        y (int, optional): 南北向
+    """
+    u = await user.User.read_sql(interaction.user.id)
+    u.position.goto(x, y, z)
+    embed = discord.Embed(title='移動位置到', description=str(u.position.coordinate), timestamp=datetime.datetime.now())
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await u.write_sql()
+
+
+@app_commands.checks.cooldown(1, 60)
+@tree.command(description='取得一個測試鎬')
+async def rpg_givetool(interaction: discord.Interaction):
+    u = await user.User.read_sql(interaction.user.id)
+    if u.inventory.get_item_by_name('測試鎬'):
+        await interaction.response.send_message('你已經有了', ephemeral=True)
+    u.inventory.add_items(item.Tool('測試鎬', 1, 100, 1000))
+    await interaction.response.send_message('完成', ephemeral=True)
+    await u.write_sql()
+
+
 @tree.error
 async def on_error(interaction: discord.Interaction, error: app_commands.errors.AppCommandError):
     if isinstance(error, app_commands.errors.CommandOnCooldown):
@@ -367,6 +436,8 @@ async def goodnight():
 @client.event
 async def on_ready():
     client.add_view(qpoll_button())
+    client.add_view(RPG_views.RPG_dropdown())
+    client.add_view(RPG_views.Work_dropdown())
     await tree.sync()
     if not goodnight.is_running():
         goodnight.start()

@@ -3,7 +3,7 @@ import yaml
 import random
 from typing import Union
 
-with open('config.yaml', encoding='utf-8') as f:
+with open('config/app.yaml', encoding='utf-8') as f:
     conf = yaml.load(f, yaml.SafeLoader)['chatgpt']
 
 openai.api_key = conf['token']
