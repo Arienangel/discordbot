@@ -38,7 +38,7 @@ class Position:
             cursor = await db.execute(f'SELECT * FROM Ore WHERE zmin<? AND zmax>?', [self.z, self.z])
             ores= [
                 item.Ore(ore[0], 0, ore[1],
-                         item.Ore(ore[2]) if ore[2] == 'self' else item.Item(ore[2]), ore[3], ore[4], ore[5], ore[6])
+                         item.Ore(ore[0]) if ore[2] == 'self' else item.Item(ore[2]), ore[3], ore[4], ore[5], ore[6])
                 for ore in await cursor.fetchall()
             ]
             return sorted(ores, key=lambda x: x.name)

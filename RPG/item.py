@@ -21,7 +21,7 @@ class Block(Item):
         super().__init__(name, amount, stackable=True)
         self.type='Block'
         self.level = level
-        self.drop = self
+        self.drop = drop or self
 
 
 class Ore(Block):
