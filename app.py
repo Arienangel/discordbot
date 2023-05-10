@@ -1,12 +1,15 @@
-import discord
-from discord import app_commands
-from discord.ext import tasks
-from typing import Union
 import datetime
-import yaml
-import aiosqlite
 import re
-import games, chatgpt
+from typing import Union
+
+import aiosqlite
+import discord
+import yaml
+from discord import app_commands, ui
+from discord.ext import tasks
+
+import chatgpt
+import games
 
 
 def load_config():
@@ -64,6 +67,7 @@ async def on_message(message: discord.Message):
 
     await record_message()
     if message.author == client.user: return  # prevent loop
+    if message.author.bot: return  # ignore bot messages
     if message.is_system(): return  # ignore system messages
     if isinstance(message.channel, discord.DMChannel): await forward_private()
     if message.channel.id in conf['chatgpt']['channel']:  # chatbot channel
@@ -76,17 +80,20 @@ async def on_message(message: discord.Message):
 @client.event
 async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
     if not payload.guild_id: return  ## private message
+    if payload.channel_id in conf['on_message_delete']['ignore']: return  # blacklist channel
     try:
         if payload.guild_id in conf['on_message_delete']:
             async with aiosqlite.connect(f'data/{payload.guild_id}.db') as db:
                 async with db.execute(f'SELECT * FROM `{payload.channel_id}` WHERE id=?;', [payload.message_id]) as cur:
                     async for row in cur:
                         user = await client.fetch_user(int(row[2]))
-                        text = f'**Message sent by <@{row[2]}> Deleted in <#{payload.channel_id}>**'
+                        if user.bot: return  # ignore bot messages
+                        text = f'**Message sent at <t:{row[1]}> by <@{row[2]}> Deleted in <#{payload.channel_id}>**'
                         if row[3]: text = text + '\n' + row[3]
                         if row[4]: text = text + '\n**Attachment**\n' + row[4]
-                        embed = discord.Embed(description=text, color=discord.Colour.red())
+                        embed = discord.Embed(description=text, color=discord.Colour.red(), timestamp=datetime.datetime.now())
                         embed.set_author(name=str(user), icon_url=user.display_avatar.url if user.display_avatar else None)
+                        embed.set_footer(text=f'Message ID: {payload.message_id}')
                         for channel_id in conf['on_message_delete'][payload.guild_id]:
                             channel = await client.fetch_channel(int(channel_id))
                             await channel.send(embed=embed)
@@ -99,10 +106,11 @@ async def on_guild_emojis_update(guild: discord.Guild, before: list[discord.Emoj
     if guild.id in conf['on_guild_emojis_update']:
         for emoji in set(before).symmetric_difference(set(after)):
             if len(before) > len(after):
-                embed = discord.Embed(description=f'**Emoji Deleted:** {emoji.url}', color=discord.Colour.red())
+                embed = discord.Embed(description='Emoji Deleted', color=discord.Colour.red(), timestamp=datetime.datetime.now())
             elif len(before) < len(after):
-                embed = discord.Embed(description=f'**Emoji Created:** {emoji.url}', color=discord.Colour.red())
+                embed = discord.Embed(description='Emoji Created', color=discord.Colour.red(), timestamp=datetime.datetime.now())
             embed.set_author(name=f'{str(guild)}', icon_url=guild.icon.url if guild.icon else None)
+            embed.set_image(url=emoji.url)
             for channel_id in conf['on_guild_emojis_update'][guild.id]:
                 channel = await client.fetch_channel(int(channel_id))
                 await channel.send(embed=embed)
@@ -113,10 +121,11 @@ async def on_guild_stickers_update(guild: discord.Guild, before: list[discord.Gu
     if guild.id in conf['on_guild_stickers_update']:
         for sticker in set(before).symmetric_difference(set(after)):
             if len(before) > len(after):
-                embed = discord.Embed(description=f'**Sticker Deleted:** {sticker.url}', color=discord.Colour.red())
+                embed = discord.Embed(description='Sticker Deleted', color=discord.Colour.red(), timestamp=datetime.datetime.now())
             elif len(before) < len(after):
-                embed = discord.Embed(description=f'**Sticker Created:** {sticker.url}', color=discord.Colour.red())
+                embed = discord.Embed(description='Sticker Created', color=discord.Colour.red(), timestamp=datetime.datetime.now())
             embed.set_author(name=f'{str(guild)}', icon_url=guild.icon.url if guild.icon else None)
+            embed.set_image(url=sticker.url)
             for channel_id in conf['on_guild_stickers_update'][guild.id]:
                 channel = await client.fetch_channel(int(channel_id))
                 await channel.send(embed=embed)
@@ -229,8 +238,54 @@ async def copy(interaction: discord.Interaction,
         await interaction.response.send_message("不在同一個伺服器", ephemeral=True)
 
 
+@tree.command(name='qpoll', description='Quick poll')
+async def qpoll(interaction: discord.Interaction, title: str = None, content: str = None):
+    """
+    Args:
+        content (str, Optional): 內容
+        title (str, Optional): 標題
+    """
+    embed = discord.Embed(title=title if title else '投票', description=content, timestamp=datetime.datetime.now())
+    embed.add_field(name='⭕', value='')
+    embed.add_field(name='❌', value='')
+    embed.add_field(name='❓', value='')
+    button = qpoll_button()
+    await interaction.response.send_message(embed=embed, view=button)
+
+
+class qpoll_button(discord.ui.View):
+
+    def __init__(self):
+        super().__init__(timeout=None)
+
+    async def edit(self, id, interaction: discord.Interaction, button: discord.ui.Button):
+        embed = interaction.message.embeds[0]
+        users = embed.fields[id].value.split(' ')
+        user = f'<@{interaction.user.id}>'
+        if user not in users:
+            button.label = str(int(button.label) + 1)
+            users.append(user)
+        else:
+            button.label = str(int(button.label) - 1)
+            users.remove(user)
+        embed.set_field_at(id, name=embed.fields[id].name, value=' '.join(users))
+        await interaction.response.edit_message(embed=embed, view=self)
+
+    @discord.ui.button(label='0', custom_id='qpoll:o', emoji='⭕')
+    async def T(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.edit(0, interaction, button)
+
+    @discord.ui.button(label='0', custom_id='qpoll:x', emoji='❌')
+    async def F(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.edit(1, interaction, button)
+
+    @discord.ui.button(label='0', custom_id='qpoll:q', emoji='❓')
+    async def Q(self, interaction: discord.Interaction, button: discord.ui.Button):
+        await self.edit(2, interaction, button)
+
+
 @tree.command(name='anonymous', description='匿名傳送訊息')
-@app_commands.checks.cooldown(1, 60)
+@app_commands.checks.cooldown(3, 60)
 async def anonymous(interaction: discord.Interaction,
                     content: str,
                     title: str = None,
@@ -311,7 +366,7 @@ async def goodnight():
 
 @client.event
 async def on_ready():
-    print(f'We have logged in as {client.user}')
+    client.add_view(qpoll_button())
     await tree.sync()
     if not goodnight.is_running():
         goodnight.start()
