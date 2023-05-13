@@ -375,7 +375,7 @@ async def rpgeat(interaction: discord.Interaction, food : str, amount: int = 1):
 @rpgeat.autocomplete('food')
 async def rpgeat_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
     u = await user.User.read_sql(interaction.user.id)
-    return [app_commands.Choice(name=i.name, value=i.name) for i in activity.Eat.get_possible_types(u.inventory)]
+    return [app_commands.Choice(name=i.name, value=i.name) for i in u.inventory.get_items_by_category('Food')]
 
 @app_commands.checks.cooldown(1, 0)
 @tree.command(description='合成')
@@ -392,11 +392,35 @@ async def rpgcraft(interaction: discord.Interaction, item: str, times: int = 1):
     await interaction.response.send_message(embed=embed, ephemeral=True)
     await u.write_sql()
 
-
 @rpgcraft.autocomplete('item')
 async def rpgcraft_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
     u = await user.User.read_sql(interaction.user.id)
     return [app_commands.Choice(name=i.name, value=i.name) for i in activity.Craft.get_possible_types(u.inventory)]
+
+@tree.command(description='燒製')
+async def rpgsmelt(interaction: discord.Interaction, furnace:str,  item: str, times: int = 1):
+    """
+    Args:
+        furncae(str): 熔爐
+        item (str): 合成的物品
+        times (int, Optional): 合成次數
+    """
+    u = await user.User.read_sql(interaction.user.id)
+    res, used= u.do_activity('Smelt',furnace_name=furnace, craft_item=item, craft_times=times)
+    embed = discord.Embed(title='燒製結果', timestamp=datetime.datetime.now())
+    embed.description = f'燒製\n```{res.name}: {res.amount}```\n消耗\n```' + '\n'.join([f'{x.name}: {-x.amount}' for x in used]) + '```'
+    await interaction.response.send_message(embed=embed, ephemeral=True)
+    await u.write_sql()
+
+@rpgsmelt.autocomplete('furnace')
+async def rpgsmelt_autocomplete_furnace(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    u = await user.User.read_sql(interaction.user.id)
+    return [app_commands.Choice(name=i.name, value=i.name) for i in u.inventory.get_items_by_category('Furnace')]
+
+@rpgsmelt.autocomplete('item')
+async def rpgsmelt_autocomplete_item(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    u = await user.User.read_sql(interaction.user.id)
+    return [app_commands.Choice(name=i.name, value=i.name) for i in activity.Smelt.get_possible_types(u.inventory)]
 
 @app_commands.checks.cooldown(1, 0)
 @tree.command(description='合成方式')

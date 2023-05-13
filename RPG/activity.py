@@ -2,6 +2,7 @@ import math
 import os
 import random
 
+import datetime
 import yaml
 
 from .exceptions import *
@@ -54,7 +55,7 @@ class Gather(Activity):
         if  position.is_ground != 0: raise RPG_exception('你不在地表')
         if random.random() <= self.chance:
             n = math.ceil(random.random() * self.amount)
-            return [Item(name=self.name, amount=n, from_default=True)]
+            return [Item(name=self.name, amount=n, use_default=True)]
         else:
             return []
 
@@ -105,7 +106,7 @@ class Mine(Activity):
                 durability = tool['durability']
                 n = math.ceil(random.random() * self.cluster_size)
                 if durability - n < 0: n = durability
-                L.append(Item(name=drop.name, amount=n * drop.amount, from_default=True))
+                L.append(Item(name=drop.name, amount=n * drop.amount, use_default=True))
                 tool.metadata['durability'] = durability - n
         return L
 
@@ -145,9 +146,50 @@ class Craft(Activity):
             i = inventory.get_items_by_name(ingredient.name)
             if len(i) == 0: raise RPG_exception('沒有足夠材料')
             if i[0].amount - n < 0: raise RPG_exception('沒有足夠材料')
-            L.append(Item(ingredient.category, ingredient.name, -n, ingredient.metadata))
-        return Item(self.result.category, self.result.name, self.result.amount * times, self.result.metadata), L
+            L.append(Item(ingredient.category, ingredient.name, -n, **ingredient.metadata))
+        return Item(self.result.category, self.result.name, self.result.amount * times, **self.result.metadata), L
 
+class Smelt(Activity):
+    def __init__(self, name: str = None, recipe: list[Item] = None, result: Item = None,time:int=None, temperature:int=None, **kwargs) -> None:
+        '''Item to smelt'''
+        super().__init__(name, **kwargs)
+        self.recipe = recipe
+        self.result = result
+        self.recipe = recipe
+        self.time=time
+        self.temperature=temperature
+
+    def get_possible_types(inventory:Inventory=None, *args, **kwargs):
+        def get_craft(name, recipe, amount, **kwargs):
+            recipe = [Item(name=x, amount=i, use_default=True) for x, i in recipe.items()]
+            res = Item(name=name, amount=amount, use_default=True)
+            return Smelt(name, recipe, res, **kwargs)
+
+        L = list()
+        for name, values in conf['Smelt'].items():
+            if inventory:
+                for ingredient, amount in values['recipe'].items():
+                    i = inventory.get_items_by_name(ingredient)
+                    if len(i) == 0: break
+                    if i[0].amount < amount: break
+                else: L.append(get_craft(name, **values))
+            else: L.append(get_craft(name, **values))
+        return L
+
+    def do(self, inventory: Inventory,furnace:Item, times: int=1, **kwargs):
+        '''Return list of smelting items and used items (with negative amount), also reduce furnace durability,  but not reduce amount of items in inventory'''
+        if furnace['durability']-self.result.amount*times<0: raise RPG_exception('熔爐沒有足夠耐久度')
+        L = []
+        for ingredient in self.recipe:
+            n = ingredient.amount * times
+            i = inventory.get_items_by_name(ingredient.name)
+            if len(i) == 0: raise RPG_exception('沒有足夠材料')
+            if i[0].amount - n < 0: raise RPG_exception('沒有足夠材料')
+            L.append(Item(ingredient.category, ingredient.name, -n, **ingredient.metadata))
+        # until=self.time+(datetime.datetime.now()+datetime.timedelta(seconds=self.time)).timestamp()
+        # success rate
+        furnace.metadata['durability']=furnace['durability']-self.result.amount*times
+        return Item(self.result.category, self.result.name, self.result.amount * times,stackable=False, **self.result.metadata), L
 
 class Eat(Activity):
 

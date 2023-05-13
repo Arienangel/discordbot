@@ -1,7 +1,7 @@
 import json
 import math
 import os
-
+import datetime
 import aiosqlite
 import yaml
 
@@ -25,10 +25,10 @@ class Position:
             if not self.x: self.x = conf['Position']['x']
             if not self.y: self.y = conf['Position']['y']
             if not self.z: self.z = conf['Position']['z']
-            if 'metadata' in conf['Position']: 
-                d=dict(conf['Position']['metadata'])
+            if 'metadata' in conf['Position']:
+                d = dict(conf['Position']['metadata'])
                 d.update(self.metadata)
-                self.metadata=d
+                self.metadata = d
 
     def __getitem__(self, n):
         if hasattr(self, n): return getattr(self, n)
@@ -96,10 +96,10 @@ class Saturation:
         if use_default:
             if not self.level: self.level = conf['Saturation']['level']
             if not self.range: self.range = conf['Saturation']['range']
-            if 'metadata' in conf['Saturation']: 
-                d=dict(conf['Saturation']['metadata'])
+            if 'metadata' in conf['Saturation']:
+                d = dict(conf['Saturation']['metadata'])
                 d.update(self.metadata)
-                self.metadata=d
+                self.metadata = d
 
     def __getitem__(self, n):
         if hasattr(self, n): return getattr(self, n)
@@ -123,8 +123,8 @@ class Saturation:
 
     def do_activity(self, activity):
         '''Reduce saturation level'''
-        hungry=conf['Activity'][type(activity).__name__]['hungry']
-        self.level=self.level-hungry
+        hungry = conf['Activity'][type(activity).__name__]['hungry']
+        self.level = self.level - hungry
 
     async def read_sql(id: int, db: aiosqlite.Connection = None, close=True):
         try:
@@ -156,11 +156,10 @@ class Currency:
         self.metadata = kwargs
         if use_default:
             if not self.dollars: self.dollars = conf['Currency']['dollars']
-            if 'metadata' in conf['Currency']: 
-                d=dict(conf['Currency']['metadata'])
+            if 'metadata' in conf['Currency']:
+                d = dict(conf['Currency']['metadata'])
                 d.update(self.metadata)
-                self.metadata=d
-
+                self.metadata = d
 
     def __getitem__(self, n):
         if hasattr(self, n): return getattr(self, n)
@@ -208,10 +207,10 @@ class Item:
         if use_default:
             if not self.category: self.category = default_items[self.name]['category']
             if not self.stackable: self.stackable = default_items[self.name]['stackable']
-            if 'metadata' in default_items[self.name]: 
-                d=dict(default_items[self.name]['metadata'])
+            if 'metadata' in default_items[self.name]:
+                d = dict(default_items[self.name]['metadata'])
                 d.update(self.metadata)
-                self.metadata=d
+                self.metadata = d
 
     def __getitem__(self, n):
         if hasattr(self, n): return getattr(self, n)
@@ -223,6 +222,7 @@ class Item:
     def add_amount(self, item):
         if self.name != item.name: raise TypeError('Different name')
         if not self.stackable: raise TypeError('Not stackable')
+        if self.metadata or item.metadata: raise TypeError('Item with metadata is not stackable')
         self.amount = self.amount + item.amount
 
 
@@ -265,6 +265,7 @@ class Inventory:
             j = self.get_items_by_name(i.name)
             if len(j) > 0:
                 if not j[0].stackable: self.items.append(i)
+                elif j[0].metadata or i.metadata: self.items.append(i)
                 else: j[0].add_amount(i)
             else: self.items.append(i)
 
@@ -279,7 +280,13 @@ class Inventory:
             cursor = await db.execute(f'SELECT "name" FROM "sqlite_master" WHERE type="table" AND name=?;', ['inventory'])
             if await cursor.fetchone():
                 async with db.execute(f'SELECT * FROM "inventory"') as cur:
-                    return Inventory(*[Item(row[0], row[1], row[2], **json.loads(row[3]), use_default=True) async for row in cur])
+                    L = []
+                    async for row in cur:
+                        if row[3]:
+                            L.append(Item(row[0], row[1], row[2], **json.loads(row[3]), stackable=False, use_default=True))
+                        else:
+                            L.append(Item(row[0], row[1], row[2], use_default=True))
+                    return Inventory(*L)
             else:
                 return Inventory()
         finally:
@@ -291,9 +298,9 @@ class Inventory:
             await db.execute('DROP TABLE IF EXISTS "inventory"')
             await db.execute(f'CREATE TABLE "inventory" ("category" TEXT, "name" TEXT, "amount" INTEGAR, "metadata" TEXT);')
             for item in self:
-                if item.amount<= 0: continue
+                if item.amount <= 0: continue
                 if 'durability' in item.metadata:
-                    if item['durability']<=0: continue
+                    if item['durability'] <= 0: continue
                 await db.execute(
                     f'INSERT INTO "inventory" VALUES (?,?,?,?);',
                     [item.category, item.name, item.amount, json.dumps(item.metadata, ensure_ascii=False)])
@@ -405,16 +412,26 @@ class User:
     def __getitem__(self, n):
         return self.metadata[n]
 
-    def do_activity(self, activity_name: str, tool_name: str = None, craft_item: str = None,craft_times:int=1, food_name:str=None, food_amount:int=None, *args, **kwargs):
+    def do_activity(self,
+                    activity_name: str,
+                    tool_name: str = None,
+                    craft_item: str = None,
+                    craft_times: int = 1,
+                    furnace_name: str = None,
+                    food_name: str = None,
+                    food_amount: int = None,
+                    *args,
+                    **kwargs):
         '''
         Gather: 
         Mine: tool_name
         Craft: craft_item, craft_times
+        Furnace: furnace_name, craft_item, craft_times
         Eat: food_name, food_amount
         '''
-        from .activity import Craft, Gather, Mine, Eat
-        ability = self.abilitytree.get_ability_by_name(activity_name)
+        from .activity import Craft, Gather, Mine, Smelt, Eat
         if activity_name == 'Gather':
+            ability = self.abilitytree.get_ability_by_name(activity_name)
             if self.saturation.level - conf['Activity'][activity_name]['hungry'] < min(self.saturation.range): raise RPG_exception('沒體力了')
             res = []
             for activity in Gather.get_possible_types(ability):
@@ -424,10 +441,11 @@ class User:
             self.saturation.do_activity(activity)
             return res
         elif activity_name == 'Mine':
+            ability = self.abilitytree.get_ability_by_name(activity_name)
             if self.saturation.level - conf['Activity'][activity_name]['hungry'] < min(self.saturation.range): raise RPG_exception('沒體力了')
             tools = self.inventory.get_items_by_name(tool_name)
-            if len(tools)==0: raise RPG_exception('沒有這個工具')
-            tool=tools[0]
+            if len(tools) == 0: raise RPG_exception('沒有這個工具')
+            tool = tools[0]
             res = []
             for activity in Mine.get_possible_types(self.position, tool):
                 res.extend(activity.do(self.position, tool))
@@ -436,34 +454,54 @@ class User:
             self.saturation.do_activity(activity)
             return res
         elif activity_name == 'Craft':
+            ability = self.abilitytree.get_ability_by_name(activity_name)
             if self.saturation.level - conf['Activity'][activity_name]['hungry'] < min(self.saturation.range): raise RPG_exception('沒體力了')
             for craft in Craft.get_possible_types(self.inventory):
                 if craft.name == craft_item:
                     res, used = craft.do(self.inventory, craft_times)
                     break
-                else:
-                    raise RPG_exception('未知的合成')
+            else:
+                raise RPG_exception('未知的合成')
             self.inventory.add_items(res, *used)
             ability.add_experience(1)
             self.saturation.do_activity(craft)
             return res, used
-        # elif activity_name == 'Smelt': return Smelt(*args, **kwargs)
+        elif activity_name == 'Smelt':
+            ability = self.abilitytree.get_ability_by_name(activity_name)
+            fs = self.inventory.get_items_by_name(furnace_name)
+            if len(fs) == 0: raise RPG_exception('無此熔爐')
+            for f in fs:
+                if 'until' in f.metadata:
+                    if f['until'] < datetime.datetime.now().timestamp(): continue
+                else: break
+            else:
+                raise RPG_exception('無閒置的熔爐')
+            for smelt in Smelt.get_possible_types():
+                if smelt.name == craft_item:
+                    res, used = smelt.do(self.inventory, f, craft_times)
+                    break
+            else:
+                raise RPG_exception('未知的合成')
+            self.inventory.add_items(res, *used)
+            ability.add_experience(1)
+            self.saturation.do_activity(smelt)
+            return res, used
         # elif activity_name == 'Farm': return Farm(*args, **kwargs)
         # elif activity_name == 'Feed': return Feed(*args, **kwargs)
-        elif activity_name == 'Eat': 
+        # food balance
+        elif activity_name == 'Eat':
             for food in Eat.get_possible_types(self.inventory):
-                if food.name==food_name:
-                    s, eaten=food.do(self.inventory)
-                    if s+self.saturation.level > max(self.saturation.range): raise RPG_exception('你太飽了')
+                if food.name == food_name:
+                    s, eaten = food.do(self.inventory, food_amount)
+                    if s + self.saturation.level > max(self.saturation.range): raise RPG_exception('你太飽了')
                     break
-            else: 
+            else:
                 raise RPG_exception('沒有這個食物')
             self.inventory.add_items(eaten)
             self.saturation.add_saturation(s)
             return s, eaten
         else:
             raise ValueError('Unknown activity')
-
 
     async def read_sql(id: int, name: str = None):
         async with aiosqlite.connect(os.path.join(path, f'data/{id}.db')) as db:
