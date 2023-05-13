@@ -1,7 +1,7 @@
 import random, math
 import yaml
 
-with open('config/app.yaml', encoding='utf-8') as f:
+with open('config.yaml', encoding='utf-8') as f:
     conf = yaml.load(f, yaml.SafeLoader)['games']
 
 
