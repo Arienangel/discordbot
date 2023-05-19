@@ -1,0 +1,38 @@
+Ability:
+  Gather: 
+    experience: 0
+  Mine: 
+    experience: 0
+  Craft: 
+    experience: 0
+  Smelt: 
+    experience: 0
+  Farm: 
+    experience: 0
+  Feed: 
+    experience: 0
+  Fish: 
+    experience: 0
+Finance:
+  deposit: 1000
+  debt: 0
+  interest_rate: 0.01
+Position:
+  x: 0
+  y: 0
+  z: 64
+  ground: 64
+Health:
+  health:
+    range: [0, 20]
+    level: 20
+  saturation:
+    range: [-5, 20]
+    level: 50
+  nutrient:
+    grain: 0
+    proteins: 0
+    vegetables: 0
+    fruits: 0
+    dairys: 0
+    fats: 0

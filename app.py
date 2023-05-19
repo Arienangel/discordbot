@@ -10,12 +10,12 @@ from discord.ext import tasks
 
 import chatgpt
 import games
-from RPG import activity, user, views
-from RPG.exceptions import *
+from RPG import *
+from RPG_views import *
 
 
 def load_config():
-    with open('config.yaml', encoding='utf-8') as f:
+    with open('config/app.yaml', encoding='utf-8') as f:
         global conf
         conf = yaml.load(f, yaml.SafeLoader)['app']
 
@@ -60,11 +60,7 @@ async def on_message(message: discord.Message):
     async def record_message():
         async with aiosqlite.connect(f'data/messages/{message.guild.id if message.guild else "private"}.db') as db:
             await db.execute(f'CREATE TABLE IF NOT EXISTS `{message.channel.id}` (id, time, user, content, attachment);')
-            await db.execute(f'INSERT INTO `{message.channel.id}` VALUES (?,?,?,?,?);', [
-                message.id,
-                round(message.created_at.timestamp()), message.author.id, message.content,
-                '\n'.join([attachment.url for attachment in message.attachments]) if message.attachments else None
-            ])
+            await db.execute(f'INSERT INTO `{message.channel.id}` VALUES (?,?,?,?,?);', [message.id, round(message.created_at.timestamp()), message.author.id, message.content, '\n'.join([attachment.url for attachment in message.attachments]) if message.attachments else None])
             await db.commit()
 
     await record_message()
@@ -157,17 +153,7 @@ async def fortune(interaction: discord.Interaction, ask: str = None):
 
 
 @tree.command(name='pick', description='多選一')
-async def pick(interaction: discord.Interaction,
-               a: str,
-               b: str,
-               c: str = None,
-               d: str = None,
-               e: str = None,
-               f: str = None,
-               g: str = None,
-               h: str = None,
-               i: str = None,
-               j: str = None):
+async def pick(interaction: discord.Interaction, a: str, b: str, c: str = None, d: str = None, e: str = None, f: str = None, g: str = None, h: str = None, i: str = None, j: str = None):
     """
     Args:
         a (str): 事項1
@@ -187,13 +173,7 @@ async def pick(interaction: discord.Interaction,
 
 
 @tree.command(name='cp', description='複製訊息到其他頻道')
-async def copy(interaction: discord.Interaction,
-               message_id: str,
-               channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread],
-               notify: bool = True,
-               origin: bool = True,
-               copier: bool = True,
-               title: str = None):
+async def copy(interaction: discord.Interaction, message_id: str, channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread], notify: bool = True, origin: bool = True, copier: bool = True, title: str = None):
     """
     Args:
         message_id (str): 訊息ID
@@ -288,10 +268,7 @@ class qpoll_button(discord.ui.View):
 
 @tree.command(name='anonymous', description='匿名傳送訊息')
 @app_commands.checks.cooldown(3, 60)
-async def anonymous(interaction: discord.Interaction,
-                    content: str,
-                    title: str = None,
-                    channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread] = None):
+async def anonymous(interaction: discord.Interaction, content: str, title: str = None, channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread] = None):
     """
     Args:
         content (str): 內容
@@ -351,31 +328,33 @@ async def reload(interaction: discord.Interaction):
 @tree.command(description='開始遊戲，顯示RPG資訊')
 async def rpginfo(interaction: discord.Interaction):
     embed = discord.Embed(title='RPG資訊', timestamp=datetime.datetime.now())
-    embed.description = f'使用方式\n```位置: 顯示目前座標及此高度可挖到的礦物\n營養: 工作會消耗飽食度，吃東西可回復飽食度\n物品: 顯示目前擁有的物品\n工作: 採集、挖礦、合成\n專精: 持續工作會提升專精等級```\n'
+    embed.description = f'使用方式\n```位置: 顯示目前座標及此高度可挖到的礦物\n健康: 工作會消耗飽食度，吃東西可回復飽食度\n物品: 顯示目前擁有的物品\n工作: 採集、挖礦、合成\n專精: 持續工作會提升專精等級```\n'
     embed.add_field(name='玩家', value=f'{interaction.user.mention}')
     embed.add_field(name='現在時間', value=f'<t:{round(datetime.datetime.now().timestamp())}>')
-    await interaction.response.send_message(embed=embed, view=views.RPG_dropdown(), ephemeral=True)
+    await interaction.response.send_message(embed=embed, view=RPG_dropdown(), ephemeral=True)
+
 
 @app_commands.checks.cooldown(1, 0)
 @tree.command(description='吃東西')
-async def rpgeat(interaction: discord.Interaction, food : str, amount: int = 1):
+async def rpgeat(interaction: discord.Interaction, food: str, amount: int = 1):
     """
     Args:
         food (str): 食物
         amount (int, Optional): 數量
     """
-    u = await user.User.read_sql(interaction.user.id)
-    s, eaten= u.do_activity('Eat', food_name=food, food_amount=amount)
+    u = await User.read_sql(interaction.user.id)
+    s, eaten = u.do_activity('Eat', to_use=u.inventory[food], times=amount)
     embed = discord.Embed(title='吃東西', timestamp=datetime.datetime.now())
-    embed.description = f'回復`{round(s, 1)}`飽食度\n目前飽食度: {u.saturation.level}/{max(u.saturation.range)}\n消耗食物: {eaten.name}\*{-eaten.amount}'
+    embed.description = f'回復`{round(s, 1)}`飽食度\n目前飽食度: {u.health.saturation}/{max(u.health.saturation_range)}\n消耗食物: {eaten.display_name}\*{-eaten.amount}'
     await interaction.response.send_message(embed=embed, ephemeral=True)
     await u.write_sql()
 
 
 @rpgeat.autocomplete('food')
 async def rpgeat_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-    u = await user.User.read_sql(interaction.user.id)
-    return [app_commands.Choice(name=i.name, value=i.name) for i in u.inventory.get_items_by_category('Food')]
+    u = await User.read_sql(interaction.user.id)
+    return [app_commands.Choice(name=i.display_name, value=i.uid) for i in u.inventory.group_items_by_category['food']]
+
 
 @app_commands.checks.cooldown(1, 0)
 @tree.command(description='合成')
@@ -385,42 +364,59 @@ async def rpgcraft(interaction: discord.Interaction, item: str, times: int = 1):
         item (str): 合成的物品
         times (int, Optional): 合成次數
     """
-    u = await user.User.read_sql(interaction.user.id)
-    res, used= u.do_activity('Craft', craft_item=item, craft_times=times)
+    u = await User.read_sql(interaction.user.id)
+    res, used = u.do_activity('Craft', to_craft=Item.get_default(item), times=times)
     embed = discord.Embed(title='合成結果', timestamp=datetime.datetime.now())
-    embed.description = f'合成\n```{res.name}: {res.amount}```\n消耗\n```' + '\n'.join([f'{x.name}: {-x.amount}' for x in used]) + '```'
+    embed.description = f'合成\n```{res.display_name}: {res.amount}```\n消耗\n```' + '\n'.join([f'{x.display_name}: {-x.amount}' for x in used]) + '```'
     await interaction.response.send_message(embed=embed, ephemeral=True)
     await u.write_sql()
+
 
 @rpgcraft.autocomplete('item')
 async def rpgcraft_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-    u = await user.User.read_sql(interaction.user.id)
-    return [app_commands.Choice(name=i.name, value=i.name) for i in activity.Craft.get_possible_types(u.inventory)]
+    u = await User.read_sql(interaction.user.id)
+    return [app_commands.Choice(name=i.display_name, value=i.id) for i in u.get_possible_craft]
 
+
+@app_commands.checks.cooldown(1, 0)
 @tree.command(description='燒製')
-async def rpgsmelt(interaction: discord.Interaction, furnace:str,  item: str, times: int = 1):
+async def rpgsmelt(interaction: discord.Interaction, furnace: str, fuel: str, fuel_amount: int, item: str, times: int = 1):
     """
     Args:
-        furncae(str): 熔爐
+        furnace (str): 熔爐
+        fuel (str): 燃料
+        fuel_amount (int): 燃料數量
         item (str): 合成的物品
         times (int, Optional): 合成次數
     """
-    u = await user.User.read_sql(interaction.user.id)
-    res, used= u.do_activity('Smelt',furnace_name=furnace, craft_item=item, craft_times=times)
-    embed = discord.Embed(title='燒製結果', timestamp=datetime.datetime.now())
-    embed.description = f'燒製\n```{res.name}: {res.amount}```\n消耗\n```' + '\n'.join([f'{x.name}: {-x.amount}' for x in used]) + '```'
+    u = await User.read_sql(interaction.user.id)
+    res, used, fur = u.do_activity('Smelt', to_craft=Item.get_default(item), times=times, fuel=Item.get_default(fuel, fuel_amount), furnace=u.inventory[furnace])
+    embed = discord.Embed(title='燒製中', timestamp=datetime.datetime.now())
+    embed.add_field(name='燒製', value=f'{res.display_name}: {res.amount}')
+    embed.add_field(name='消耗', value='\n'.join([f'{x.display_name}: {-x.amount}' for x in used]))
+    embed.add_field(name='熔爐', value=f'{fur.display_name}[{fur.tag["durability"]}]')
+    embed.add_field(name='完成時間', value=f'<t:{fur.tag["pending"]}:R>')
     await interaction.response.send_message(embed=embed, ephemeral=True)
     await u.write_sql()
 
+
 @rpgsmelt.autocomplete('furnace')
-async def rpgsmelt_autocomplete_furnace(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-    u = await user.User.read_sql(interaction.user.id)
-    return [app_commands.Choice(name=i.name, value=i.name) for i in u.inventory.get_items_by_category('Furnace')]
+async def rpgsmelt_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    u = await User.read_sql(interaction.user.id)
+    return [app_commands.Choice(name=i.display_name, value=i.uid) for i in u.inventory.group_items_by_category['structure:furnace'] if 'pending' not in i.tag]
+
+
+@rpgsmelt.autocomplete('fuel')
+async def rpgsmelt_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    u = await User.read_sql(interaction.user.id)
+    return [app_commands.Choice(name=i.display_name, value=i.id) for i in u.inventory.group_items_by_category['ore:fuel']]
+
 
 @rpgsmelt.autocomplete('item')
-async def rpgsmelt_autocomplete_item(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-    u = await user.User.read_sql(interaction.user.id)
-    return [app_commands.Choice(name=i.name, value=i.name) for i in activity.Smelt.get_possible_types(u.inventory)]
+async def rpgsmelt_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
+    u = await User.read_sql(interaction.user.id)
+    return [app_commands.Choice(name=i.display_name, value=i.id) for i in u.get_possible_smelt]
+
 
 @app_commands.checks.cooldown(1, 0)
 @tree.command(description='合成方式')
@@ -429,24 +425,28 @@ async def rpgrecipe(interaction: discord.Interaction, item: str):
     Args:
         item (str): 合成的物品
     """
-    for i in activity.Craft.get_possible_types():
-        if i.name==item: break
-    text=f'{i.name}\*`{i.result.amount}`='+'+'.join([f'{x.name}\*`{x.amount}`' for x in i.recipe])
-    embed = discord.Embed(title='合成方式',description=text, timestamp=datetime.datetime.now())
+    key, values = list(User.get_recipe(item).items())[0]
+    text = f'{key.display_name}\*`{key.amount}`=' + '+'.join([f'{x.display_name}\*`{x.amount}`' for x in values['recipe']])
+    embed = discord.Embed(title='合成方式', description=text, timestamp=datetime.datetime.now())
+    if 'temperature' in values:
+        embed.add_field(name='溫度', value=f"{values['temperature']}°C")
+        embed.add_field(name='時間', value=f"{values['duration']}s")
     await interaction.response.send_message(embed=embed, ephemeral=True)
+
 
 @rpgrecipe.autocomplete('item')
 async def rpgrecipe_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-    return [app_commands.Choice(name=i.name, value=i.name) for i in activity.Craft.get_possible_types()]
+    return [app_commands.Choice(name=list(i.keys())[0].display_name, value=list(i.keys())[0].id) for i in User.get_recipe() if current in list(i.keys())[0].display_name][:25]
+
 
 @app_commands.checks.cooldown(1, 0)
 @tree.command(description='採集')
 async def rpggather(interaction: discord.Interaction):
-    u = await user.User.read_sql(interaction.user.id)
-    res=u.do_activity('Gather')
+    u = await User.read_sql(interaction.user.id)
+    res = u.do_activity('Gather')
     embed = discord.Embed(title='採集結果', timestamp=datetime.datetime.now())
     if res:
-        embed.description = '你採到了\n```' + '\n'.join([f'{x.name}: {x.amount}' for x in res]) + '```'
+        embed.description = '你採到了\n```' + '\n'.join([f'{x.display_name}: {x.amount}' for x in res]) + '```'
     else:
         embed.description = '你沒有採到任何東西，空手而歸'
     await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -460,21 +460,23 @@ async def rpgmine(interaction: discord.Interaction, tool: str):
     Args:
         tool (str): 工具名稱
     """
-    u = await user.User.read_sql(interaction.user.id)
-    res = u.do_activity('Mine', tool)
+    u = await User.read_sql(interaction.user.id)
+    tool = u.inventory[tool]
+    res = u.do_activity('Mine', tool=tool)
     embed = discord.Embed(title='挖礦結果', timestamp=datetime.datetime.now())
     if res:
-        embed.description = '你挖到了\n```' + '\n'.join([f'{x.name}: {x.amount}' for x in res]) + '```'
+        embed.description = '你挖到了\n```' + '\n'.join([f'{x.display_name}: {x.amount}' for x in res]) + '```'
     else:
         embed.description = '你沒有挖到任何東西，空手而歸'
+    embed.add_field(name='工具', value=f'```{tool.display_name}[{tool.tag["durability"]}]```')
     await interaction.response.send_message(embed=embed, ephemeral=True)
     await u.write_sql()
 
 
 @rpgmine.autocomplete('tool')
 async def rpgmine_autocomplete(interaction: discord.Interaction, current: str) -> list[app_commands.Choice[str]]:
-    u = await user.User.read_sql(interaction.user.id)
-    return [app_commands.Choice(name=i.name, value=i.name) for i in u.inventory.get_items_by_category('Pickaxe')]
+    u = await User.read_sql(interaction.user.id)
+    return [app_commands.Choice(name=i.display_name, value=i.uid) for i in u.inventory.group_items_by_category['tool:pickaxe']]
 
 
 @tree.command(description='移動位置')
@@ -485,7 +487,7 @@ async def rpggoto(interaction: discord.Interaction, z: int = 64, x: int = 0, y: 
         x (int, optional): 東西向
         y (int, optional): 南北向
     """
-    u = await user.User.read_sql(interaction.user.id)
+    u = await User.read_sql(interaction.user.id)
     u.position.goto(x, y, z)
     embed = discord.Embed(title='移動位置到', description=str(u.position.coordinate), timestamp=datetime.datetime.now())
     await interaction.response.send_message(embed=embed, ephemeral=True)
@@ -515,20 +517,17 @@ async def goodnight():
 @client.event
 async def on_ready():
     client.add_view(qpoll_button())
-    client.add_view(views.RPG_dropdown())
-    client.add_view(views.Work_dropdown())
+    client.add_view(RPG_dropdown())
+    client.add_view(Work_dropdown())
     await tree.sync()
     if not goodnight.is_running():
         goodnight.start()
 
 
-def check_send_permission(
-        user: discord.User, channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel,
-                                           discord.Thread]) -> bool:
+def check_send_permission(user: discord.User, channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]) -> bool:
     if isinstance(channel, discord.Thread) and channel.permissions_for(user).send_messages_in_threads is False: return False
     elif isinstance(channel, discord.ForumChannel) and channel.permissions_for(user).create_public_threads is False: return False
-    elif isinstance(channel,
-                    (discord.TextChannel, discord.VoiceChannel, discord.StageChannel)) and channel.permissions_for(user).send_messages is False:
+    elif isinstance(channel, (discord.TextChannel, discord.VoiceChannel, discord.StageChannel)) and channel.permissions_for(user).send_messages is False:
         return False
     else:
         return True

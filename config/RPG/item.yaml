@@ -1,0 +1,295 @@
+item:stick:
+  name: 木棒
+  stackable: true
+item:flint:
+  name: 碎石
+  stackable: true
+item:dirt:
+  name: 泥土
+  stackable: true
+item:stone:
+  name: 石頭
+  stackable: true
+item:clay:
+  name: 黏土
+  stackable: true
+item:brick:
+  name: 石磚
+  stackable: true
+item:wool:
+  name: 羊毛
+  stackable: true
+structure:furnace:crucible:
+  name: 坩堝
+  stackable: false
+  tag:
+    durability: 64
+structure:furnace:crude_furnace:
+  name: 熔爐
+  stackable: false
+  tag:
+    durability: 288
+structure:furnace:blast_furnace:
+  name: 高爐
+  stackable: false
+  tag:
+    durability: 1024
+tool:pickaxe:flint_pickaxe:
+  name: 碎石鎬
+  stackable: false
+  tag:
+    durability: 24
+tool:pickaxe:stone_pickaxe:
+  name: 石鎬
+  stackable: false
+  tag:
+    durability: 36
+tool:pickaxe:bronze_pickaxe:
+  name: 青銅鎬
+  stackable: false
+  tag:
+    durability: 90
+tool:pickaxe:iron_pickaxe:
+  name: 鐵鎬
+  stackable: false
+  tag:
+    durability: 180
+tool:pickaxe:steel_pickaxe:
+  name: 鋼鐵鎬
+  stackable: false
+  tag:
+    durability: 540
+tool:pickaxe:diamond_pickaxe:
+  name: 鑽石鎬
+  stackable: false
+  tag:
+    durability: 1890
+tool:pickaxe:tungsten_carbide_pickaxe:
+  name: 鎢鋼鎬
+  stackable: false
+  tag:
+    durability: 1890
+tool:pickaxe:fishing_rod:
+  name: 魚竿
+  stackable: false
+  tag:
+    durability: 36
+ore:fuel:coal:
+  name: 煤炭
+  stackable: true
+ore:fuel:coke:
+  name: 焦炭
+  stackable: true
+ore:copper_ingot:
+  name: 銅錠
+  stackable: true
+ore:tin_ingot:
+  name: 錫錠
+  stackable: true
+ore:bronze_ingot:
+  name: 青銅錠
+  stackable: true
+ore:aluminun_ingot:
+  name: 鋁錠
+  stackable: true
+ore:lead_ingot:
+  name: 鉛錠
+  stackable: true
+ore:silver_ingot:
+  name: 銀錠
+  stackable: true
+ore:gold_ingot:
+  name: 金錠
+  stackable: true
+ore:iron_ingot:
+  name: 鐵錠
+  stackable: true
+ore:cobalt_ingot:
+  name: 鈷錠
+  stackable: true
+ore:nickel_ingot:
+  name: 鎳錠
+  stackable: true
+ore:steel_ingot:
+  name: 鋼錠
+  stackable: true
+ore:platinum_ingot:
+  name: 鉑錠
+  stackable: true
+ore:titanium_ingot:
+  name: 鈦錠
+  stackable: true
+ore:tungsten_ingot:
+  name: 鎢錠
+  stackable: true
+ore:tungsten_carbide_ingot:
+  name: 鎢鋼錠
+  stackable: true
+ore:diamond:
+  name: 鑽石
+  stackable: true
+ore:ruby:
+  name: ruby
+  stackable: true
+ore:citrine:
+  name: citrine
+  stackable: true
+ore:peridot:
+  name: peridot
+  stackable: true
+ore:sapphire:
+  name: sapphire
+  stackable: true
+ore:amethyst:
+  name: amethyst
+  stackable: true
+ore:coal_ore:
+  name: 煤礦
+  stackable: true
+ore:copper_ore:
+  name: 銅礦
+  stackable: true
+ore:tin_ore:
+  name: 錫礦
+  stackable: true
+ore:aluminum_ore:
+  name: 鋁礦
+  stackable: true
+ore:lead_ore:
+  name: 鉛礦
+  stackable: true
+ore:silver_ore:
+  name: 銀礦
+  stackable: true
+ore:gold_ore:
+  name: 金礦
+  stackable: true
+ore:iron_ore:
+  name: 鐵礦
+  stackable: true
+ore:cobalt_ore:
+  name: 鈷礦
+  stackable: true
+ore:nickel_ore:
+  name: 鎳礦
+  stackable: true
+ore:platinum_ore:
+  name: 鉑礦
+  stackable: true
+ore:titanium_ore:
+  name: 鈦礦
+  stackable: true
+ore:tungsten_ore:
+  name: 鎢礦
+  stackable: true
+ore:diamond_ore:
+  name: 鑽石礦
+  stackable: true
+ore:ruby_ore:
+  name: ruby ore
+  stackable: true
+ore:citrine_ore:
+  name: citrine ore
+  stackable: true
+ore:peridot_ore:
+  name: peridot ore
+  stackable: true
+ore:sapphire_ore:
+  name: sapphire ore
+  stackable: true
+ore:amethyst_ore:
+  name: amethyst ore
+  stackable: true
+animal:cow:
+  name: 牛
+  stackable: false
+animal:sheep:
+  name: 羊
+  stackable: false
+animal:pig:
+  name: 豬
+  stackable: false
+animal:chicken:
+  name: 雞
+  stackable: false
+item:seed:
+  name: 種子
+  stackable: true
+item:wheat:
+  name: 小麥
+  stackable: true
+food:apple:
+  name: 蘋果
+  stackable: true
+food:banana:
+  name: 香蕉
+  stackable: true
+food:berry:
+  name: 甜莓
+  stackable: true
+food:orange:
+  name: 橘子
+  stackable: true
+food:tomato:
+  name: 番茄
+  stackable: true
+food:carrot:
+  name: 蘿蔔
+  stackable: true
+food:potato:
+  name: 馬鈴薯
+  stackable: true
+food:baked_potato:
+  name: 烤馬鈴薯
+  stackable: true
+food:bread:
+  name: 麵包
+  stackable: true
+food:rice:
+  name: 米飯
+  stackable: true
+item:beef:
+  name: 牛肉
+  stackable: true
+food:steak:
+  name: 牛排
+  stackable: true
+item:mutton:
+  name: 羊肉
+  stackable: true
+food:cooked_mutton:
+  name: 羊排
+  stackable: true
+item:pork:
+  name: 豬肉
+  stackable: true
+food:cooked_pork:
+  name: 豬排
+  stackable: true
+item:chicken:
+  name: 雞肉
+  stackable: true
+item:egg:
+  name: 雞蛋
+  stackable: true
+food:cooked_egg:
+  name: 雞蛋
+  stackable: true
+food:cooked_chicken:
+  name: 雞排
+  stackable: true
+item:fish:
+  name: 魚肉
+  stackable: true
+food:cooked_fish:
+  name: 魚排
+  stackable: true
+food:cheese:
+  name: 起司
+  stackable: true
+food:milk:
+  name: 牛奶
+  stackable: true
+food:cookie:
+  name: 餅乾
+  stackable: true

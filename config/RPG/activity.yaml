@@ -1,0 +1,713 @@
+Gather:
+  hungry: 1
+  experience: 1
+  target:
+    item:stick:
+      rarity: 0
+      chance: 0.7
+      amount: 6
+    item:flint:
+      rarity: 0
+      chance: 0.6
+      amount: 4
+    item:dirt:
+      rarity: 0
+      chance: 0.8
+      amount: 8
+    item:clay:
+      rarity: 0
+      chance: 0.2
+      amount: 8
+    ore:fuel:coal:
+      rarity: 1
+      chance: 0.1
+      amount: 2
+    ore:diamond:
+      rarity: 5
+      chance: 0.05
+      amount: 1
+    ore:ruby:
+      rarity: 4
+      chance: 0.01
+      amount: 1
+    ore:citrine:
+      rarity: 4
+      chance: 0.01
+      amount: 1
+    ore:peridot:
+      rarity: 4
+      chance: 0.01
+      amount: 1
+    ore:sapphire:
+      rarity: 4
+      chance: 0.01
+      amount: 1
+    ore:amethyst:
+      rarity: 4
+      chance: 0.01
+      amount: 1
+    animal:cow:
+      rarity: 3
+      chance: 0.1
+      amount: 1
+    animal:sheep:
+      rarity: 2
+      chance: 0.1
+      amount: 1
+    animal:pig:
+      rarity: 2
+      chance: 0.1
+      amount: 1
+    animal:chicken:
+      rarity: 1
+      chance: 0.1
+      amount: 1
+    item:seed:
+      rarity: 0
+      chance: 0.25
+      amount: 4
+    food:apple:
+      rarity: 0
+      chance: 0.25
+      amount: 4
+    food:banana:
+      rarity: 0
+      chance: 0.25
+      amount: 3
+    food:berry:
+      rarity: 0
+      chance: 0.25
+      amount: 5
+    food:orange:
+      rarity: 0
+      chance: 0.25
+      amount: 4
+    food:tomato:
+      rarity: 0
+      chance: 0.25
+      amount: 3
+    food:carrot:
+      rarity: 0
+      chance: 0.25
+      amount: 2
+    food:potato:
+      rarity: 0
+      chance: 0.25
+      amount: 2
+Mine:
+  hungry: 1.5
+  durexperience_cost: 1
+  experience: 1
+  tool:
+    tool:pickaxe:flint_pickaxe:
+      hardness: 1
+    tool:pickaxe:stone_pickaxe:
+      hardness: 2
+    tool:pickaxe:bronze_pickaxe:
+      hardness: 3
+    tool:pickaxe:iron_pickaxe:
+      hardness: 4
+    tool:pickaxe:steel_pickaxe:
+      hardness: 5
+    tool:pickaxe:diamond_pickaxe:
+      hardness: 6
+    tool:pickaxe:tungsten_carbide_pickaxe:
+      hardness: 6
+  target:
+    item:dirt:
+      hardness: 0
+      chance: 0.2
+      cluster_size: 2
+      range: [24, 64]
+      drop:
+        - item:dirt: 1
+    item:clay:
+      hardness: 0
+      chance: 0.2
+      cluster_size: 2
+      range: [48, 64]
+      drop:
+        - item:clay: 1
+    item:stone:
+      hardness: 1
+      chance: 0.6
+      cluster_size: 6
+      range: [0, 64]
+      drop:
+        - item:stone: 1
+    ore:coal_ore:
+      hardness: 1
+      chance: 0.2
+      cluster_size: 17
+      range: [0, 64]
+      drop:
+        - ore:fuel:coal: 1
+    ore:copper_ore:
+      hardness: 2
+      chance: 0.08
+      cluster_size: 8
+      range: [40, 64]
+      drop:
+        - ore:copper_ore: 1
+    ore:tin_ore:
+      hardness: 2
+      chance: 0.07
+      cluster_size: 8
+      range: [20, 55]
+      drop:
+        - ore:tin_ore: 1
+    ore:aluminum_ore:
+      hardness: 2
+      chance: 0.04
+      cluster_size: 6
+      range: [0, 64]
+      drop:
+        - ore:aluminum_ore: 1
+    ore:lead_ore:
+      hardness: 2
+      chance: 0.04
+      cluster_size: 8
+      range: [20, 35]
+      drop:
+        - ore:lead_ore: 1
+    ore:silver_ore:
+      hardness: 2
+      chance: 0.04
+      cluster_size: 8
+      range: [5, 30]
+      drop:
+        - ore:silver_ore: 1
+    ore:gold_ore:
+      hardness: 1
+      chance: 0.02
+      cluster_size: 9
+      range: [0, 32]
+      drop:
+        - ore:gold_ore: 1
+    ore:iron_ore:
+      hardness: 3
+      chance: 0.2
+      cluster_size: 9
+      range: [0, 64]
+      drop:
+        - ore:iron_ore: 1
+    ore:cobalt_ore:
+      hardness: 3
+      chance: 0.02
+      cluster_size: 4
+      range: [5, 20]
+      drop:
+        - ore:cobalt_ore: 1
+    ore:nickel_ore:
+      hardness: 3
+      chance: 0.02
+      cluster_size: 4
+      range: [5, 20]
+      drop:
+        - ore:nickel_ore: 1
+    ore:platinum_ore:
+      hardness: 3
+      chance: 0.01
+      cluster_size: 4
+      range: [5, 20]
+      drop:
+        - ore:platinum_ore: 1
+    ore:titanium_ore:
+      hardness: 4
+      chance: 0.04
+      cluster_size: 6
+      range: [0, 12]
+      drop:
+        - 鈦礦: 1
+    ore:tungsten_ore:
+      hardness: 4
+      chance: 0.04
+      cluster_size: 6
+      range: [0, 12]
+      drop:
+        - ore:tungsten_ore: 1
+    ore:diamond_ore:
+      hardness: 5
+      chance: 0.01
+      cluster_size: 4
+      range: [0, 12]
+      drop:
+        - ore:diamond: 1
+    ore:ruby_ore:
+      hardness: 4
+      chance: 0.01
+      cluster_size: 1
+      range: [0, 12]
+      drop:
+        - ore:ruby: 1
+    ore:citrine_ore:
+      hardness: 4
+      chance: 0.01
+      cluster_size: 1
+      range: [0, 12]
+      drop:
+        - ore:citrine: 1
+    ore:peridot_ore:
+      hardness: 4
+      chance: 0.01
+      cluster_size: 1
+      range: [0, 12]
+      drop:
+        - ore:peridot: 1
+    ore:sapphire_ore:
+      hardness: 4
+      chance: 0.01
+      cluster_size: 1
+      range: [0, 12]
+      drop:
+        - ore:sapphire: 1
+    ore:amethyst_ore:
+      hardness: 4
+      chance: 0.01
+      cluster_size: 1
+      range: [0, 12]
+      drop:
+        - ore:amethyst: 1
+Craft:
+  hungry: 0.5
+  experience: 1
+  target:
+    tool:pickaxe:flint_pickaxe:
+      recipe:
+        item:stick: 2
+        item:flint: 3
+      amount: 1
+    tool:pickaxe:stone_pickaxe:
+      recipe:
+        item:stick: 2
+        item:stone: 3
+      amount: 1
+    tool:pickaxe:bronze_pickaxe:
+      recipe:
+        item:stick: 2
+        ore:bronze_ingot: 3
+      amount: 1
+    tool:pickaxe:iron_pickaxe:
+      recipe:
+        item:stick: 2
+        ore:iron_ingot: 3
+      amount: 1
+    tool:pickaxe:steel_pickaxe:
+      recipe:
+        item:stick: 2
+        ore:steel_ingot: 3
+      amount: 1
+    tool:pickaxe:diamond_pickaxe:
+      recipe:
+        item:stick: 2
+        ore:diamond: 3
+      amount: 1
+    tool:pickaxe:tungsten_carbide_pickaxe:
+      recipe:
+        item:stick: 2
+        ore:tungsten_carbide_ingot: 3
+      amount: 1
+    structure:furnace:crucible:
+      recipe:
+        item:stone: 5
+        item:clay: 2
+      amount: 1
+    structure:furnace:crude_furnace:
+      recipe:
+        item:brick: 20
+        ore:iron_ingot: 4
+      amount: 1
+    structure:furnace:blast_furnace:
+      recipe:
+        item:brick: 40
+        item:steel_ingot: 6
+      amount: 1
+Smelt:
+  hungry: 2
+  experience: 1
+  fuel:
+    ore:fuel:coal:
+      temperature: 1200
+      duration: 60
+    ore:fuel:coke:
+      temperature: 1600
+      duration: 90
+  furnace:
+    structure:furnace:crucible:
+      temperature: 1200
+      slot: 16
+    structure:furnace:crude_furnace:
+      temperature: 1600
+      slot: 48
+    structure:furnace:blast_furnace:
+      temperature: 2400
+      slot: 128
+  target:
+    food:baked_potato:
+      temperature: 300
+      duration: 5
+      recipe:
+        food:potato: 1
+      amount: 1
+    food:bread:
+      temperature: 300
+      duration: 5
+      recipe:
+        item:wheat: 1
+      amount: 1
+    item:brick:
+      temperature: 500
+      duration: 10
+      recipe:
+        item:stone: 1
+      amount: 1
+    ore:fuel:coke:
+      temperature: 1100
+      duration: 200
+      recipe:
+        ore:fuel:coal: 1
+      amount: 1
+    ore:copper_ingot:
+      temperature: 1100
+      duration: 200
+      recipe:
+        ore:copper_ore: 1
+      amount: 1
+    ore:tin_ingot:
+      temperature: 300
+      duration: 60
+      recipe:
+        ore:tin_ore: 1
+      amount: 1
+    ore:bronze_ingot:
+      temperature: 1000
+      duration: 200
+      recipe:
+        ore:copper_ingot: 3
+        ore:tin_ingot: 1
+      amount: 4
+    ore:aluminun_ingot:
+      temperature: 700
+      duration: 150
+      recipe:
+        ore:aluminum_ore: 1
+      amount: 1
+    ore:lead_ingot:
+      temperature: 300
+      duration: 60
+      recipe:
+        ore:lead_ore: 1
+      amount: 1
+    ore:silver_ingot:
+      temperature: 1000
+      duration: 200
+      recipe:
+        ore:silver_ore: 1
+      amount: 1
+    ore:gold_ingot:
+      temperature: 1000
+      duration: 200
+      recipe:
+        ore:gold_ore: 1
+      amount: 1
+    ore:iron_ingot:
+      temperature: 1500
+      duration: 300
+      recipe:
+        ore:iron_ore: 1
+      amount: 1
+    ore:cobalt_ingot:
+      temperature: 1500
+      duration: 10
+      recipe:
+        ore:cobalt_ore: 1
+      amount: 1
+    ore:nickel_ingot:
+      temperature: 1500
+      duration: 300
+      recipe:
+        ore:nickel_ore: 1
+      amount: 1
+    ore:steel_ingot:
+      temperature: 1500
+      duration: 300
+      recipe:
+        ore:fuel:coke: 1
+        ore:iron_ingot: 5
+        ore:cobalt_ingot: 2
+        ore:nickel_ingot: 2
+      amount: 10
+    ore:platinum_ingot:
+      temperature: 1800
+      duration: 400
+      recipe:
+        ore:platinum_ore: 1
+      amount: 1
+    ore:titanium_ingot:
+      temperature: 1800
+      duration: 400
+      recipe:
+        ore:titanium_ore: 1
+      amount: 1
+    ore:tungsten_ingot:
+      temperature: 2400
+      duration: 600
+      recipe:
+        ore:tungsten_ore: 1
+      amount: 1
+    ore:tungsten_carbide_ingot:
+      temperature: 2000
+      duration: 500
+      recipe:
+        ore:fuel:coke: 1
+        ore:tungsten_ingot: 7
+        ore:titanium_ingot: 3
+        ore:aluminun_ingot: 3
+      amount: 1
+Farm:
+  hungry: 0.5
+  experience: 1
+  seed:
+    food:apple:
+      mature: 8
+      size: 3
+      drop:
+        - food:apple: 6
+    food:banana:
+      mature: 4
+      size: 3
+      drop:
+        - food:banana: 12
+    food:orange:
+      mature: 4
+      size: 3
+      drop:
+        - food:orange: 12
+    food:tomato:
+      mature: 2
+      size: 2
+      drop:
+        - food:tomato: 24
+    food:carrot:
+      mature: 3
+      size: 1
+      drop:
+        - food:carrot: 16
+    food:potato:
+      mature: 3
+      size: 1
+      drop:
+        - food:potato: 16
+    item:seed:
+      mature: 6
+      size: 1
+      drop:
+        - item:wheat: 8
+        - item:seed: 4
+Feed:
+  hungry: 0.5
+  experience: 1
+  animal:
+    animal:cow:
+      mature: 15
+      size: 10
+      drop:
+        - food:beef: 4
+        - food:milk: 2
+    animal:sheep:
+      mature: 10
+      size: 7
+      drop:
+        - food:mutton: 3
+        - item:wool: 4
+    animal:pig:
+      mature: 5
+      size: 7
+      drop:
+        - food:pork: 3
+    animal:chicken:
+      mature: 2
+      size: 2
+      drop:
+        - food:chicken: 2
+        - food:egg: 4
+Fish:
+  hungry: 0.5
+  experience: 1
+  tool:
+    tool:fishing_rod:
+  target:
+    item:fish:
+Eat:
+  food:
+    food:apple:
+      level: 2
+      nutrient:
+        grain: 0
+        proteins: 0
+        vegetables: 0
+        fruits: 1
+        dairys: 0
+        fats: 0
+    food:banana:
+      level: 2
+      nutrient:
+        grain: 0
+        proteins: 0
+        vegetables: 0
+        fruits: 1
+        dairys: 0
+        fats: 0
+    food:berry:
+      level: 1
+      nutrient:
+        grain: 0
+        proteins: 0
+        vegetables: 0
+        fruits: 0.5
+        dairys: 0
+        fats: 0
+    food:orange:
+      level: 2
+      nutrient:
+        grain: 0
+        proteins: 0
+        vegetables: 0
+        fruits: 1
+        dairys: 0
+        fats: 0
+    food:tomato:
+      level: 2
+      nutrient:
+        grain: 0
+        proteins: 0
+        vegetables: 0
+        fruits: 1
+        dairys: 0
+        fats: 0
+    food:carrot:
+      level: 2
+      nutrient:
+        grain: 0
+        proteins: 0
+        vegetables: 1
+        fruits: 0
+        dairys: 0
+        fats: 0
+    food:potato:
+      level: 2
+      nutrient:
+        grain: 0
+        proteins: 0
+        vegetables: 1
+        fruits: 0
+        dairys: 0
+        fats: 0
+    food:baked_potato:
+      level: 5
+      nutrient:
+        grain: 0
+        proteins: 0
+        vegetables: 1.5
+        fruits: 0
+        dairys: 0
+        fats: 0
+    food:bread:
+      level: 5
+      nutrient:
+        grain: 1.5
+        proteins: 0
+        vegetables: 0
+        fruits: 0
+        dairys: 0
+        fats: 0
+    food:rice:
+      level: 5
+      nutrient:
+        grain: 1.5
+        proteins: 0
+        vegetables: 0
+        fruits: 0
+        dairys: 0
+        fats: 0
+    food:steak:
+      level: 8
+      nutrient:
+        grain: 0
+        proteins: 1.5
+        vegetables: 0
+        fruits: 0
+        dairys: 0
+        fats: 0.5
+    food:cooked_mutton:
+      level: 7
+      nutrient:
+        grain: 0
+        proteins: 1.5
+        vegetables: 0
+        fruits: 0
+        dairys: 0
+        fats: 0.5
+    food:cooked_pork:
+      level: 7
+      nutrient:
+        grain: 0
+        proteins: 1.5
+        vegetables: 0
+        fruits: 0
+        dairys: 0
+        fats: 0.5
+    food:cooked_chicken:
+      level: 6
+      nutrient:
+        grain: 0
+        proteins: 1.5
+        vegetables: 0
+        fruits: 0
+        dairys: 0
+        fats: 0.5
+    food:cooked_egg:
+      level: 3
+      nutrient:
+        grain: 0
+        proteins: 0.5
+        vegetables: 0
+        fruits: 0
+        dairys: 0
+        fats: 0.5
+    food:cooked_fish:
+      level: 5
+      nutrient:
+        grain: 0
+        proteins: 1
+        vegetables: 0
+        fruits: 0
+        dairys: 0
+        fats: 0.5
+    food:cheese:
+      level: 4
+      nutrient:
+        grain: 0
+        proteins: 0
+        vegetables: 0
+        fruits: 0
+        dairys: 1.5
+        fats: 0.5
+    food:milk:
+      level: 2
+      nutrient:
+        grain: 0
+        proteins: 0
+        vegetables: 0
+        fruits: 0
+        dairys: 1
+        fats: 0.5
+    food:cookie:
+      level: 2
+      nutrient:
+        grain: 0.5
+        proteins: 0
+        vegetables: 0
+        fruits: 0
+        dairys: 0
+        fats: 0.5
