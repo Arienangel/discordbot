@@ -11,14 +11,9 @@ from discord.ext import tasks
 import chatgpt
 import games
 
+with open('config/app.yaml', encoding='utf-8') as f:
+    conf = yaml.load(f, yaml.SafeLoader)['app']
 
-def load_config():
-    with open('config.yaml', encoding='utf-8') as f:
-        global conf
-        conf = yaml.load(f, yaml.SafeLoader)['app']
-
-
-load_config()
 intents = discord.Intents.default()
 intents.message_content = True
 client = discord.Client(intents=intents)
@@ -56,13 +51,9 @@ async def on_message(message: discord.Message):
 
     # record message to sql
     async def record_message():
-        async with aiosqlite.connect(f'data/{message.guild.id if message.guild else "private"}.db') as db:
+        async with aiosqlite.connect(f'data/messages/{message.guild.id if message.guild else "private"}.db') as db:
             await db.execute(f'CREATE TABLE IF NOT EXISTS `{message.channel.id}` (id, time, user, content, attachment);')
-            await db.execute(f'INSERT INTO `{message.channel.id}` VALUES (?,?,?,?,?);', [
-                message.id,
-                round(message.created_at.timestamp()), message.author.id, message.content,
-                '\n'.join([attachment.url for attachment in message.attachments]) if message.attachments else None
-            ])
+            await db.execute(f'INSERT INTO `{message.channel.id}` VALUES (?,?,?,?,?);', [message.id, round(message.created_at.timestamp()), message.author.id, message.content, '\n'.join([attachment.url for attachment in message.attachments]) if message.attachments else None])
             await db.commit()
 
     await record_message()
@@ -83,7 +74,7 @@ async def on_raw_message_delete(payload: discord.RawMessageDeleteEvent):
     if payload.channel_id in conf['on_message_delete']['ignore']: return  # blacklist channel
     try:
         if payload.guild_id in conf['on_message_delete']:
-            async with aiosqlite.connect(f'data/{payload.guild_id}.db') as db:
+            async with aiosqlite.connect(f'data/messages/{payload.guild_id}.db') as db:
                 async with db.execute(f'SELECT * FROM `{payload.channel_id}` WHERE id=?;', [payload.message_id]) as cur:
                     async for row in cur:
                         user = await client.fetch_user(int(row[2]))
@@ -131,7 +122,7 @@ async def on_guild_stickers_update(guild: discord.Guild, before: list[discord.Gu
                 await channel.send(embed=embed)
 
 
-@tree.command(name='help', description='Show help message')
+@tree.command(name='help', description='顯示說明')
 async def help(interaction: discord.Interaction):
     await interaction.response.send_message(conf['command']['help']['message'], ephemeral=True)
 
@@ -155,17 +146,7 @@ async def fortune(interaction: discord.Interaction, ask: str = None):
 
 
 @tree.command(name='pick', description='多選一')
-async def pick(interaction: discord.Interaction,
-               a: str,
-               b: str,
-               c: str = None,
-               d: str = None,
-               e: str = None,
-               f: str = None,
-               g: str = None,
-               h: str = None,
-               i: str = None,
-               j: str = None):
+async def pick(interaction: discord.Interaction, a: str, b: str, c: str = None, d: str = None, e: str = None, f: str = None, g: str = None, h: str = None, i: str = None, j: str = None):
     """
     Args:
         a (str): 事項1
@@ -185,13 +166,7 @@ async def pick(interaction: discord.Interaction,
 
 
 @tree.command(name='cp', description='複製訊息到其他頻道')
-async def copy(interaction: discord.Interaction,
-               message_id: str,
-               channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread],
-               notify: bool = True,
-               origin: bool = True,
-               copier: bool = True,
-               title: str = None):
+async def copy(interaction: discord.Interaction, message_id: str, channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread], notify: bool = True, origin: bool = True, copier: bool = True, title: str = None):
     """
     Args:
         message_id (str): 訊息ID
@@ -238,8 +213,8 @@ async def copy(interaction: discord.Interaction,
         await interaction.response.send_message("不在同一個伺服器", ephemeral=True)
 
 
-@tree.command(name='qpoll', description='Quick poll')
-async def qpoll(interaction: discord.Interaction, title: str = None, content: str = None):
+@tree.command(name='poll', description='投票:⭕/❌/❓')
+async def poll(interaction: discord.Interaction, title: str = None, content: str = None):
     """
     Args:
         content (str, Optional): 內容
@@ -249,11 +224,11 @@ async def qpoll(interaction: discord.Interaction, title: str = None, content: st
     embed.add_field(name='⭕', value='')
     embed.add_field(name='❌', value='')
     embed.add_field(name='❓', value='')
-    button = qpoll_button()
+    button = poll_button()
     await interaction.response.send_message(embed=embed, view=button)
 
 
-class qpoll_button(discord.ui.View):
+class poll_button(discord.ui.View):
 
     def __init__(self):
         super().__init__(timeout=None)
@@ -271,25 +246,22 @@ class qpoll_button(discord.ui.View):
         embed.set_field_at(id, name=embed.fields[id].name, value=' '.join(users))
         await interaction.response.edit_message(embed=embed, view=self)
 
-    @discord.ui.button(label='0', custom_id='qpoll:o', emoji='⭕')
+    @discord.ui.button(label='0', custom_id='poll:o', emoji='⭕')
     async def T(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.edit(0, interaction, button)
 
-    @discord.ui.button(label='0', custom_id='qpoll:x', emoji='❌')
+    @discord.ui.button(label='0', custom_id='poll:x', emoji='❌')
     async def F(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.edit(1, interaction, button)
 
-    @discord.ui.button(label='0', custom_id='qpoll:q', emoji='❓')
+    @discord.ui.button(label='0', custom_id='poll:q', emoji='❓')
     async def Q(self, interaction: discord.Interaction, button: discord.ui.Button):
         await self.edit(2, interaction, button)
 
 
 @tree.command(name='anonymous', description='匿名傳送訊息')
 @app_commands.checks.cooldown(3, 60)
-async def anonymous(interaction: discord.Interaction,
-                    content: str,
-                    title: str = None,
-                    channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread] = None):
+async def anonymous(interaction: discord.Interaction, content: str, title: str = None, channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread] = None):
     """
     Args:
         content (str): 內容
@@ -318,7 +290,7 @@ async def anonymous(interaction: discord.Interaction,
         await interaction.response.send_message(f"傳送失敗", ephemeral=True)
 
 
-@tree.command(name='report', description='Report issues')
+@tree.command(name='report', description='回報錯誤')
 @app_commands.checks.cooldown(1, 60)
 async def report(interaction: discord.Interaction, content: str):
     """
@@ -335,15 +307,6 @@ async def report(interaction: discord.Interaction, content: str):
         except:
             continue
     await interaction.response.send_message(f"Finish", ephemeral=True)
-
-
-@tree.command(name='reload', description='Reload bot config file')
-async def reload(interaction: discord.Interaction):
-    if interaction.user.id in conf['command']['reload']['permission']:
-        load_config()
-        await interaction.response.send_message("Finish", ephemeral=True)
-    else:
-        await interaction.response.send_message("Permission denied", ephemeral=True)
 
 
 @tree.error
@@ -366,19 +329,16 @@ async def goodnight():
 
 @client.event
 async def on_ready():
-    client.add_view(qpoll_button())
+    client.add_view(poll_button())
     await tree.sync()
     if not goodnight.is_running():
         goodnight.start()
 
 
-def check_send_permission(
-        user: discord.User, channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel,
-                                           discord.Thread]) -> bool:
+def check_send_permission(user: discord.User, channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread]) -> bool:
     if isinstance(channel, discord.Thread) and channel.permissions_for(user).send_messages_in_threads is False: return False
     elif isinstance(channel, discord.ForumChannel) and channel.permissions_for(user).create_public_threads is False: return False
-    elif isinstance(channel,
-                    (discord.TextChannel, discord.VoiceChannel, discord.StageChannel)) and channel.permissions_for(user).send_messages is False:
+    elif isinstance(channel, (discord.TextChannel, discord.VoiceChannel, discord.StageChannel)) and channel.permissions_for(user).send_messages is False:
         return False
     else:
         return True
