@@ -3,10 +3,13 @@ import re
 from typing import Union
 
 import aiosqlite
+import aiohttp
 import discord
+import urllib.parse
 import yaml
 from discord import app_commands, ui
 from discord.ext import tasks
+from pyquery import PyQuery as pq
 
 import chatgpt
 import games
@@ -62,7 +65,7 @@ async def on_message(message: discord.Message):
     if message.is_system(): return  # ignore system messages
     if isinstance(message.channel, discord.DMChannel): await forward_private()
     if message.channel.id in conf['chatgpt']['channel']:  # chatbot channel
-        if not message.content.startswith('##'):  # ignore messages start with ##
+        if not message.content.startswith('//'):  # ignore messages start with //
             if not re.match('^<a{0,1}:.*?:\d+>', message.content):  # ignore messages start with emoji
                 if len(message.content) > 0:  # ignore sticker or embed messages
                     await chatbot()
@@ -164,6 +167,26 @@ async def pick(interaction: discord.Interaction, a: str, b: str, c: str = None, 
     S.discard(None)
     await interaction.response.send_message(f'選擇: {games.pick(list(S))}')
 
+@tree.command(name='fbid', description='FB網址轉換')
+async def fbid(interaction: discord.Interaction, url: str):
+    """
+    Args:
+        url (str): 網址
+    """
+    async with aiohttp.ClientSession() as session:
+        async with session.get(f'https://www.facebook.com/plugins/post.php?href={urllib.parse.quote_plus(url)}') as response:
+            s=pq(await response.text())
+            url=s('a._39g5').attr('href')
+            if not url:
+                url=s('a._2q21').attr('href')
+            if url:
+                if 'permalink.php?story_fbid=' in url:
+                    post, page=re.search(r'/permalink.php\?story_fbid=(\d+)&id=(\d+)', url).group(1,2)
+                    await interaction.response.send_message(f"https://www.facebook.com/{page}/posts/{post}", ephemeral=True)
+                else:
+                    await interaction.response.send_message(f"https://www.facebook.com{url.split('?')[0]}", ephemeral=True)
+            else:
+                await interaction.response.send_message('Not found', ephemeral=True)
 
 @tree.command(name='cp', description='複製訊息到其他頻道')
 async def copy(interaction: discord.Interaction, message_id: str, channel: Union[discord.TextChannel, discord.ForumChannel, discord.VoiceChannel, discord.StageChannel, discord.Thread], notify: bool = True, origin: bool = True, copier: bool = True, title: str = None):
