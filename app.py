@@ -6,13 +6,13 @@ import aiosqlite
 import aiohttp
 import discord
 import urllib.parse
+import numpy as np
 import yaml
 from discord import app_commands, ui
 from discord.ext import tasks
 from pyquery import PyQuery as pq
 
 import chatgpt
-import games
 
 with open('config/app.yaml', encoding='utf-8') as f:
     conf = yaml.load(f, yaml.SafeLoader)['app']
@@ -136,7 +136,18 @@ async def chance(interaction: discord.Interaction, ask: str = None):
     Args:
         ask (str, optional): 事項
     """
-    await interaction.response.send_message(f'{ask if ask else "機率"}: {round(games.chance(), 2):.0%}')
+    start, end = sorted(conf['command']['chance'])
+    res = np.random.randint(low=start * 100, high=end * 100)
+    await interaction.response.send_message(f'{ask if ask else "機率"}: {res}%')
+
+
+@tree.command(name='dice', description='擲骰子')
+async def dice(interaction: discord.Interaction, n: int = 6):
+    """
+    Args:
+        n (int, optional): 最大數字
+    """
+    await interaction.response.send_message(f'{np.random.randint(1, n)}')
 
 
 @tree.command(name='fortune', description='你的運勢')
@@ -145,7 +156,8 @@ async def fortune(interaction: discord.Interaction, ask: str = None):
     Args:
         ask (str, optional): 事項
     """
-    await interaction.response.send_message(f'{ask if ask else "運勢"}: {games.fortune()}')
+    res = np.random.choice(conf['command']['fortune']['key'], p=conf['command']['fortune']['ratio'])
+    await interaction.response.send_message(f'{ask if ask else "運勢"}: {res}')
 
 
 @tree.command(name='pick', description='多選一')
@@ -165,7 +177,7 @@ async def pick(interaction: discord.Interaction, a: str, b: str, c: str = None, 
     """
     S = {a, b, c, d, e, f, g, h, i, j}
     S.discard(None)
-    await interaction.response.send_message(f'選擇: {games.pick(list(S))}')
+    await interaction.response.send_message(f'選擇: {np.random.choice(list(S))}')
 
 @tree.command(name='fbid', description='FB網址轉換')
 async def fbid(interaction: discord.Interaction, url: str):
